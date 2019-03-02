@@ -1,0 +1,155 @@
+#!/bin/sh
+
+# Set default values.
+default_prefix='/usr/local'
+default_includedir='include/i3-ipc++'
+default_libdir="lib/i3-ipc++"
+default_build_static='yes'
+default_build_dynamic='yes'
+default_build_examples='yes'
+default_debug_version='no'
+
+# Define function for pretty-printing of help menu.
+print_help()
+{
+    printf 'Usage:\n\t./configure [options]\n\n\n'
+    cat <<- EOF | column -t -s '|' -N 'Option,Default value,Description'
+		|
+		--prefix=<path>|${default_prefix}|Root path where project will be installed.
+		--includedir=<path>|${default_includedir}|Path where public headers will be installed, relative to '--prefix'.
+		--libdir=<path>|${default_libdir}|Path where library will be installed, relative to '--prefix'.
+		--build-static=yes/no|${default_build_static}|Build static version of the library.
+		--build-dynamic=yes/no|${default_build_dynamic}|Build dynamic version of the library.
+		--build-examples=yes/no|${default_build_examples}|Build example programs which use this library.
+		--debug-version=yes/no|${default_debug_version}|Use no optimizations and enable asserts and debug symbols.
+	EOF
+}
+
+# Parse options from command line.
+for option in "${@}"; do
+    case "${option}" in
+        # Installation paths.
+        --prefix=*) prefix="$(echo "${option}" | sed 's/^--prefix=//')";;
+        --includedir=*) includedir="$(echo "${option}" | sed 's/^--includedir=//')";;
+        --libdir=*) libdir="$(echo "${option}" | sed 's/^--libdir=//')";;
+
+        # Build targets.
+        --build-static=*)
+            value="$(echo "${option}" | sed 's/^--build-static=//')"
+            case "${value}" in
+                yes|no) build_static="${value}";;
+                *)
+                    printf "Invalid value '${value}' for option '--build-static'.\n" 1>&2
+                    print_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+        --build-dynamic=*)
+            value="$(echo "${option}" | sed 's/^--build-dynamic=//')"
+            case "${value}" in
+                yes|no) build_dynamic="${value}";;
+                *)
+                    printf "Invalid value '${value}' for option '--build-dynamic'.\n" 1>&2
+                    print_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+        --build-examples=*)
+            value="$(echo "${option}" | sed 's/^--build-examples=//')"
+            case "${value}" in
+                yes|no) build_examples="${value}";;
+                *)
+                    printf "Invalid value '${value}' for option '--build-examples'.\n" 1>&2
+                    print_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+
+        # Build options.
+        --debug-version=*)
+            value="$(echo "${option}" | sed 's/^--debug-version=//')"
+            case "${value}" in
+                yes|no) debug_version="${value}";;
+                *)
+                    printf "Invalid value '${value}' for option '--debug-version'.\n" 1>&2
+                    print_help
+                    exit 1
+                    ;;
+            esac
+            ;;
+
+        # Manual.
+        --help)
+            print_help
+            exit 0
+            ;;
+
+        # Invalid option.
+        *)
+            printf "Unknown option: '${option}'\n"
+            print_help
+            exit 1
+            ;;
+    esac
+done
+
+# Set unspecified options to default values.
+prefix="${prefix:=${default_prefix}}"
+includedir="${includedir:=${default_includedir}}"
+libdir="${libdir:=${default_libdir}}"
+build_static="${build_static:=${default_build_static}}"
+build_dynamic="${build_dynamic:=${default_build_dynamic}}"
+build_examples="${build_examples:=${default_build_examples}}"
+debug_version="${debug_version:=${default_debug_version}}"
+
+# Configure all build targets and libraries for installation.
+if [ "${build_static}" = 'yes' ]; then
+    targets="${targets} static_lib "
+    [ "${build_examples}" = 'yes' ] && targets="${targets} static_lib_examples "
+    install_libs="${install_libs} install_static_lib "
+fi
+if [ "${build_dynamic}" = 'yes' ]; then
+    targets="${targets} dynamic_lib "
+    [ "${build_examples}" = 'yes' ] && targets="${targets} dynamic_lib_examples "
+    install_libs="${install_libs} install_dynamic_lib "
+fi
+
+# Configure debug flags.
+if [ "${debug_version}" = 'yes' ]; then
+    debug_cpp_flags=''
+    debug_cxx_flags='-O0 -g3'
+else
+    debug_cpp_flags='-DNDEBUG'
+    debug_cxx_flags=''
+fi
+
+# Generate Makefile.
+cat <<- EOF > Makefile
+	$(printf '%52s' '' | tr ' ' '#') CONFIGURATION $(printf '%53s' '' | tr ' ' '#')
+
+	PREFIX := $(echo "${prefix}" | xargs)
+	INCLUDE_DIR := $(echo "${includedir}" | xargs)
+	LIB_DIR := $(echo "${libdir}" | xargs)
+	TARGETS := $(echo "${targets}" | xargs)
+	INSTALL_LIBS := $(echo "${install_libs}" | xargs)
+	DEBUG_CPPFLAGS := $(echo "${debug_cpp_flags}" | xargs)
+	DEBUG_CXXFLAGS := $(echo "${debug_cxx_flags}" | xargs)
+
+EOF
+cat Makefile.in >> Makefile
+
+# Print final configuration.
+cat <<- EOF
+	Configuration
+	-------------
+	--prefix=${prefix}
+	--includedir=${includedir}
+	--libdir=${libdir}
+	--build-static=${build_static}
+	--build-dynamic=${build_dynamic}
+	--build-examples=${build_examples}
+	--debug-version=${debug_version}
+EOF

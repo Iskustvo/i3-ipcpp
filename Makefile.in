@@ -1,0 +1,227 @@
+##################################################### LIBRARY INFO #####################################################
+
+LIB_NAME := i3-ipc++
+LIB_VERSION := 0.1.0
+
+##################################################### SOURCE FILES #####################################################
+
+LIB_SOURCES_DIRS := $(shell find src -type d)
+LIB_SOURCES := $(foreach dir,$(LIB_SOURCES_DIRS),$(wildcard $(dir)/*.cpp))
+
+EXAMPLE_SOURCES_DIR := examples
+EXAMPLE_SOURCES := $(wildcard $(EXAMPLE_SOURCES_DIR)/*.cpp)
+
+vpath %.cpp $(LIB_SOURCES_DIRS) $(EXAMPLE_SOURCES_DIR)
+
+##################################################### HEADER FILES #####################################################
+
+INCLUDE_DIRS := include $(LIB_SOURCES_DIRS)
+
+##################################################### BUILD PATHS ######################################################
+
+# Prefix paths.
+BUILD_DIR := build
+LIB_BUILD_DIR := $(BUILD_DIR)/lib
+EXAMPLES_BUILD_DIR := $(BUILD_DIR)/examples
+
+# Static library paths.
+STATIC_LIB_BUILD_DIR := $(LIB_BUILD_DIR)/static
+STATIC_LIB_OBJECTS_DIR := $(STATIC_LIB_BUILD_DIR)/objects
+STATIC_LIB_DEPENDENCIES_DIR := $(STATIC_LIB_BUILD_DIR)/.dependencies
+
+# Dynamic library paths.
+DYNAMIC_LIB_BUILD_DIR := $(LIB_BUILD_DIR)/dynamic
+DYNAMIC_LIB_OBJECTS_DIR := $(DYNAMIC_LIB_BUILD_DIR)/objects
+DYNAMIC_LIB_DEPENDENCIES_DIR := $(DYNAMIC_LIB_BUILD_DIR)/.dependencies
+
+# Examples paths.
+EXAMPLE_OBJECTS_DIR := $(EXAMPLES_BUILD_DIR)/objects
+EXAMPLE_DEPENDENCIES_DIR := $(EXAMPLES_BUILD_DIR)/.dependencies
+STATIC_LIB_EXAMPLES_DIR := $(EXAMPLES_BUILD_DIR)/static
+DYNAMIC_LIB_EXAMPLES_DIR := $(EXAMPLES_BUILD_DIR)/dynamic
+
+# List of directories that might need to be created.
+NEEDED_DIRS := $(STATIC_LIB_BUILD_DIR) $(STATIC_LIB_OBJECTS_DIR) $(STATIC_LIB_DEPENDENCIES_DIR) \
+               $(DYNAMIC_LIB_BUILD_DIR) $(DYNAMIC_LIB_OBJECTS_DIR) $(DYNAMIC_LIB_DEPENDENCIES_DIR) \
+               $(EXAMPLE_OBJECTS_DIR) $(EXAMPLE_DEPENDENCIES_DIR) $(STATIC_LIB_EXAMPLES_DIR) $(DYNAMIC_LIB_EXAMPLES_DIR)
+
+#################################################### STATIC LIBRARY ####################################################
+
+# Static library and objects needed to build it.
+STATIC_LIB := $(STATIC_LIB_BUILD_DIR)/lib$(LIB_NAME).a
+STATIC_LIB_OBJECTS := $(addprefix $(STATIC_LIB_OBJECTS_DIR)/,$(notdir $(LIB_SOURCES:.cpp=.o)))
+
+# Dependency files needed for creation of object files for static library.
+ifneq (,$(findstring static_lib,$(TARGETS)))
+    NEEDED_DEPENDENCIES := $(addprefix $(STATIC_LIB_DEPENDENCIES_DIR)/,$(notdir $(STATIC_LIB_OBJECTS:.o=.d)))
+endif
+
+################################################### DYNAMIC LIBRARY ####################################################
+
+# Dynamic library and objects needed to build it.
+DYNAMIC_LIB := $(DYNAMIC_LIB_BUILD_DIR)/lib$(LIB_NAME).so.$(LIB_VERSION)
+DYNAMIC_LIB_OBJECTS := $(addprefix $(DYNAMIC_LIB_OBJECTS_DIR)/,$(notdir $(LIB_SOURCES:.cpp=.o)))
+
+# Dependency files needed for creation of object files for dynamic library.
+ifneq (,$(findstring dynamic_lib,$(TARGETS)))
+    NEEDED_DEPENDENCIES += $(addprefix $(DYNAMIC_LIB_DEPENDENCIES_DIR)/,$(notdir $(DYNAMIC_LIB_OBJECTS:.o=.d)))
+endif
+
+# Names and links for dynamic library.
+VERSIONLESS_SONAME := lib$(LIB_NAME).so
+SONAME := $(VERSIONLESS_SONAME).$(shell echo '$(LIB_VERSION)' | grep -o '^[0-9]\+')
+SOLINKS := $(DYNAMIC_LIB_BUILD_DIR)/$(VERSIONLESS_SONAME) $(DYNAMIC_LIB_BUILD_DIR)/$(SONAME)
+
+####################################################### EXAMPLES #######################################################
+
+# Examples for static and dynamic libraries and objects needed to build them.
+EXAMPLE_OBJECTS := $(addprefix $(EXAMPLE_OBJECTS_DIR)/,$(notdir $(EXAMPLE_SOURCES:.cpp=.o)))
+STATIC_LIB_EXAMPLES := $(addprefix $(STATIC_LIB_EXAMPLES_DIR)/,$(notdir $(basename $(EXAMPLE_OBJECTS))))
+DYNAMIC_LIB_EXAMPLES := $(addprefix $(DYNAMIC_LIB_EXAMPLES_DIR)/,$(notdir $(basename $(EXAMPLE_OBJECTS))))
+
+# Dependency files needed for creation of object files for examples.
+ifneq (,$(findstring examples,$(TARGETS)))
+    NEEDED_DEPENDENCIES += $(addprefix $(EXAMPLE_DEPENDENCIES_DIR)/,$(notdir $(EXAMPLE_OBJECTS:.o=.d)))
+endif
+
+######################################################## FLAGS #########################################################
+
+CPPFLAGS := $(addprefix -I,$(INCLUDE_DIRS)) $(DEBUG_CPPFLAGS)
+CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Wshadow -Wold-style-cast -Wcast-align -Wunused -Wpedantic -Wconversion \
+            -Wsign-conversion -Wdouble-promotion -Wformat=2 -Werror -Wfatal-errors $(DEBUG_CXXFLAGS)
+
+##################################################### PHONY RULES ######################################################
+
+# Real make goals.
+.PHONY: all install uninstall clean distclean
+
+# Helper rules.
+.PHONY: static_lib static_lib_examples dynamic_lib dynamic_lib_examples \
+        install_static_lib install_dynamic_lib install_headers
+
+all: $(TARGETS)
+
+static_lib: $(STATIC_LIB)
+static_lib_examples: $(STATIC_LIB_EXAMPLES)
+dynamic_lib: $(DYNAMIC_LIB)
+dynamic_lib_examples: $(DYNAMIC_LIB_EXAMPLES)
+
+install: ${INSTALL_LIBS} install_headers
+
+install_static_lib: ${STATIC_LIB}
+	mkdir -p $(DESTDIR)$(PREFIX)/${LIB_DIR}
+	cp $< $(DESTDIR)$(PREFIX)/${LIB_DIR}
+
+install_dynamic_lib: ${DYNAMIC_LIB}
+	mkdir -p $(DESTDIR)$(PREFIX)/${LIB_DIR}
+	cp $< $(DESTDIR)$(PREFIX)/${LIB_DIR}
+	ln -fs $(<F) $(DESTDIR)$(PREFIX)/${LIB_DIR}/$(VERSIONLESS_SONAME)
+	ldconfig -n $(DESTDIR)$(PREFIX)/${LIB_DIR}
+
+install_headers:
+	mkdir -p $(DESTDIR)$(PREFIX)/${INCLUDE_DIR}
+	cp include/* $(DESTDIR)$(PREFIX)/${INCLUDE_DIR}
+
+uninstall:
+	$(RM) -rf $(DESTDIR)$(PREFIX)/${LIB_DIR} $(DESTDIR)$(PREFIX)/${INCLUDE_DIR}
+
+clean:
+	$(RM) -rf $(BUILD_DIR)
+
+distclean: clean
+	$(RM) Makefile
+
+######################################################## RULES #########################################################
+
+$(STATIC_LIB): $(STATIC_LIB_OBJECTS) | $(STATIC_LIB_BUILD_DIR)
+	$(AR) src $@ $?
+
+$(STATIC_LIB_EXAMPLES_DIR)/%: LDFLAGS := -static -pthread -L$(STATIC_LIB_BUILD_DIR)
+$(STATIC_LIB_EXAMPLES_DIR)/%: LDLIBS  := -l$(LIB_NAME)
+$(STATIC_LIB_EXAMPLES_DIR)/%: $(EXAMPLE_OBJECTS_DIR)/%.o $(STATIC_LIB) | $(STATIC_LIB_EXAMPLES_DIR)
+	$(CXX) $(LDFLAGS) -o $@ $< $(LDLIBS)
+
+$(DYNAMIC_LIB): CXXFLAGS += -fPIC
+$(DYNAMIC_LIB): LDFLAGS  := -shared -Wl,-soname,$(SONAME)
+$(DYNAMIC_LIB): $(DYNAMIC_LIB_OBJECTS) | $(DYNAMIC_LIB_BUILD_DIR)
+	$(CXX) $(LDFLAGS) -o $@ $^
+
+$(DYNAMIC_LIB_BUILD_DIR)/$(VERSIONLESS_SONAME): $(DYNAMIC_LIB) | $(DYNAMIC_LIB_BUILD_DIR)
+	ln -fs $(<F) $@
+
+$(DYNAMIC_LIB_BUILD_DIR)/$(SONAME): $(DYNAMIC_LIB) | $(DYNAMIC_LIB_BUILD_DIR)
+	ldconfig -n $(@D)
+
+$(DYNAMIC_LIB_EXAMPLES_DIR)/%: LDFLAGS := -pthread -L$(DYNAMIC_LIB_BUILD_DIR) -Wl,-rpath,$(realpath $(DYNAMIC_LIB_BUILD_DIR))
+$(DYNAMIC_LIB_EXAMPLES_DIR)/%: LDLIBS  := -l$(LIB_NAME)
+$(DYNAMIC_LIB_EXAMPLES_DIR)/%: $(EXAMPLE_OBJECTS_DIR)/%.o $(DYNAMIC_LIB) $(SOLINKS) | $(DYNAMIC_LIB_EXAMPLES_DIR)
+	$(CXX) $(LDFLAGS) -o $@ $< $(LDLIBS)
+
+$(NEEDED_DIRS):
+	mkdir -p $@
+
+##################################################### DEPENDENCIES #####################################################
+
+# generate_dependency_rules $(1) $(2)
+#
+# Description   Generates rules for creation of dependency files.
+#               Each dependency file will contain rule for creation of appropriate object file.
+#               Created file will also add prerequisites for object file to prerequisites of the generated rule.
+#               This is needed to be sure that dependency file will be updated once some *.h nedded by *.o changes.
+#
+# $(1)          Directory in which dependency files will be created by generated rules.
+#
+# $(2)          Directory in which dependency rules will create object files.
+#
+# Example       $(1) = build/.dep
+#               $(2) = build/objects
+#
+#               Generated rule:
+#               -> build/.dep/%.d: %.cpp | build/.dep
+#                      [some_commands]
+#
+#               When executed for "% = main" this rule will create "build/.dep/main.d" with following content:
+#               -> build/objects/main.o: main.cpp [list_of_headers_included_by_main.cpp] | build/objects
+#               ->     $(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -o $@ $<
+#               ->
+#               -> build/.dep/main.d: main.cpp [list_of_headers_included_by_main.cpp] | build/.dep/
+#
+# Notes         Be sure to include $(1)/%.d files AFTER you evaluate this function call.
+#               Be sure to provide rules for generation of directories $(1) and $(2).
+#
+# Usage         $(eval $(call generate_dependency_rules, build/.dep, build/objects))
+#               include build/.dep/main.d
+#               build/.dep build/objects:
+#                   mkdir -p $@
+#
+define generate_dependency_rules
+$(1)/%.d: %.cpp | $(1)
+	@# Generate prerequisites for %.o file coresponding to the %.cpp file.
+	$$(eval $$@_rule := $$(strip $$(shell $$(CXX) -MM $$(CPPFLAGS) $$< | sed -zre 's|[\\\n\t ]+| |g')))
+
+	@# Correct path to %.o file in generated rule and add that path as prerequisite.
+	$$(eval $$@_object_rule := $(2)/$$($$@_rule) | $$(strip $(2)))
+
+	@# Generate recepie to use for construction of %.o file.
+	$$(eval $$@_object_recepie := $$$$$$$$(CXX) -c $$$$$$$$(CPPFLAGS) $$$$$$$$(CXXFLAGS) -o $$$$$$$$@ $$$$$$$$<)
+
+	@# Generate rule which will add same prerequisites needed by %.o file to this very rule.
+	@# This is needed for updating of dependency file when prerequisites for %.o are modified.
+	$$(eval $$@_dependency_rule := $$(shell echo '$$($$@_rule)' | sed 's|^[^:]\+|$$@|') | $$(dir $$@))
+
+	@# Write generated rules in dependency file which needs to be included afterwards.
+	@printf '%s\n\t%s\n\n%s' '$$($$@_object_rule)' '$$($$@_object_recepie)' '$$($$@_dependency_rule)' > $$@
+endef
+
+# Generate rules for creation of dependency files.
+$(eval $(call generate_dependency_rules,$(STATIC_LIB_DEPENDENCIES_DIR),$(STATIC_LIB_OBJECTS_DIR)))
+$(eval $(call generate_dependency_rules,$(DYNAMIC_LIB_DEPENDENCIES_DIR),$(DYNAMIC_LIB_OBJECTS_DIR)))
+$(eval $(call generate_dependency_rules,$(EXAMPLE_DEPENDENCIES_DIR),$(EXAMPLE_OBJECTS_DIR)))
+
+# Include needed rules for creating %.o files from %.cpp and *.hpp files it uses.
+# If these rules don't exist yet or are out of date, they will be created by generated rules above.
+ifneq ($(MAKECMDGOALS),clean)
+    ifneq ($(MAKECMDGOALS),distclean)
+        -include $(NEEDED_DEPENDENCIES)
+    endif
+endif

@@ -1,0 +1,5 @@
+flags= -std=c++17
+flags= -Iinclude -Isrc -Isrc/i3_ipc -Isrc/i3_json_parser
+
+flags= -Wall -Wextra -Wshadow -Wold-style-cast -Wcast-align -Wunused -Wpedantic -Wconversion
+flags= -Wsign-conversion -Wdouble-promotion -Wformat=2 -Werror -Wfatal-errors
