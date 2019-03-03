@@ -27,6 +27,7 @@
 #define I3_JSON_PARSER_HPP
 
 // Library headers.
+#include "i3_message.hpp"
 #include "i3_containers.hpp"
 
 // External library headers.
@@ -245,6 +246,21 @@ public:
      * \return                     Info about occurred tick event.
      */
     static i3_containers::tick_event parse_tick_event(const char* a_json_string);
+
+    /**
+     * \brief                       Parses info about provided event.
+     *
+     * \param [in] a_event_type     Type of the given event.
+     *
+     * \param [in] a_json_string    String containing the info about event in JSON format.
+     *
+     * \return                      Info about provided event.
+     *
+     * \throws i3_ipc_bad_message   When "a_event_type" is actually not an event message.
+     *
+     * \throws i3_ipc_unsupported   When value of some property is unknown to "i3-ipc++" library.
+     */
+    static i3_containers::event parse_event(i3_message_type a_event_type, const char* a_json_string);
 
 private:
 

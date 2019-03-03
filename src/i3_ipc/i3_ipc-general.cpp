@@ -139,7 +139,6 @@ namespace
 i3_ipc::i3_ipc() : m_i3_socket_path(::find_i3_socket_path()),
                    m_request_socket(connect_to_i3(m_i3_socket_path)),
                    m_event_socket(connect_to_i3(m_i3_socket_path)),
-                   m_event_subscriptions(),
                    m_callbacks()
 {
 }
@@ -147,7 +146,6 @@ i3_ipc::i3_ipc() : m_i3_socket_path(::find_i3_socket_path()),
 i3_ipc::i3_ipc(std::string_view a_i3_socket_path) : m_i3_socket_path(a_i3_socket_path),
                                                     m_request_socket(connect_to_i3(m_i3_socket_path)),
                                                     m_event_socket(connect_to_i3(m_i3_socket_path)),
-                                                    m_event_subscriptions(),
                                                     m_callbacks()
 {
 }
@@ -155,7 +153,6 @@ i3_ipc::i3_ipc(std::string_view a_i3_socket_path) : m_i3_socket_path(a_i3_socket
 i3_ipc::i3_ipc(i3_ipc&& a_ipc) : m_i3_socket_path(std::move(a_ipc.m_i3_socket_path)),
                                  m_request_socket(std::move(a_ipc.m_request_socket)),
                                  m_event_socket(std::move(a_ipc.m_event_socket)),
-                                 m_event_subscriptions(std::move(a_ipc.m_event_subscriptions)),
                                  m_callbacks(std::move(a_ipc.m_callbacks))
 {
     // Make sure that a_ipc doesn't close sockets upon destruction.

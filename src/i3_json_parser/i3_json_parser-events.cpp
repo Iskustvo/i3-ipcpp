@@ -25,7 +25,9 @@
 
 // Library headers.
 #include "i3_json_parser.hpp"
+#include "i3_message.hpp"
 #include "i3_containers.hpp"
+#include "i3_ipc_bad_message.hpp"
 #include "i3_ipc_unsupported.hpp"
 #include "i3_ipc_invalid_argument.hpp"
 
@@ -369,4 +371,23 @@ i3_containers::tick_event i3_json_parser::parse_tick_event(const char* a_json_st
     tick_event.payload = get_attribute_value<std::optional<const char*>>(json_object, "payload");
 
     return tick_event;
+}
+
+i3_containers::event i3_json_parser::parse_event(i3_message_type a_event_type, const char* a_json_string)
+{
+    switch(a_event_type)
+    {
+        case i3_message_type::workspace_event:  return parse_workspace_event(a_json_string);
+        case i3_message_type::output_event:     return parse_output_event(a_json_string);
+        case i3_message_type::mode_event:       return parse_mode_event(a_json_string);
+        case i3_message_type::window_event:     return parse_window_event(a_json_string);
+        case i3_message_type::bar_config_event: return parse_bar_config(a_json_string);
+        case i3_message_type::binding_event:    return parse_binding_event(a_json_string);
+        case i3_message_type::shutdown_event:   return parse_shutdown_event(a_json_string);
+        case i3_message_type::tick_event:       return parse_tick_event(a_json_string);
+
+        default:
+            const std::string message_type = std::to_string(static_cast<std::uint32_t>(a_event_type));
+            throw i3_ipc_bad_message("Received unexpected message of type: " + message_type);
+    }
 }

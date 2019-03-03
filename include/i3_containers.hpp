@@ -29,6 +29,7 @@
 // C++ headers.
 #include <vector>
 #include <string>
+#include <variant>
 #include <optional>
 
 // C headers.
@@ -373,6 +374,22 @@ namespace i3_containers
         bool is_first;                      /**< Tells if this is confirmation to the subscription. */
         std::optional<std::string> payload; /**< Payload sent by the broadcaster of this event.     */
     };
+
+    /**
+     * Type used to store info of any supported i3 event.
+     */
+    // NOTE: Keep the size and order of elements synced with "i3_ipc::event_type" and "i3_ipc::i3_callback".
+    using event = std::variant<
+                               i3_containers::workspace_event,
+                               i3_containers::output_event,
+                               i3_containers::mode_event,
+                               i3_containers::window_event,
+                               i3_containers::bar_config_event,
+                               i3_containers::binding_event,
+                               i3_containers::shutdown_event,
+                               i3_containers::tick_event
+                              >;
+
 } // i3_containers namespace
 
 #endif // I3_CONTAINERS_HPP
