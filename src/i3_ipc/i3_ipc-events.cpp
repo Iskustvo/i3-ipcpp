@@ -218,7 +218,7 @@ void i3_ipc::handle_next_event() const
             break;
         }
 
-        case i3_message_type::bar_config_update_event:
+        case i3_message_type::bar_config_event:
         {
             constexpr std::uint8_t index = static_cast<std::uint8_t>(event_type::bar_config_update);
 

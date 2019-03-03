@@ -45,28 +45,28 @@
 enum class i3_message_type : std::uint32_t
 {
     // Request message types.
-    command = I3_IPC_MESSAGE_TYPE_RUN_COMMAND,               /**< Tell i3 to execute command(s).                      */
-    workspaces = I3_IPC_MESSAGE_TYPE_GET_WORKSPACES,         /**< Get info about workspaces in i3.                    */
-    subscribe = I3_IPC_MESSAGE_TYPE_SUBSCRIBE,               /**< Subscribe to event from i3.                         */
-    outputs = I3_IPC_MESSAGE_TYPE_GET_OUTPUTS,               /**< Get info about avalible outputs in i3.              */
-    tree = I3_IPC_MESSAGE_TYPE_GET_TREE,                     /**< Get info about internal node tree in i3.            */
-    marks = I3_IPC_MESSAGE_TYPE_GET_MARKS,                   /**< Get marks that i3 uses.                             */
-    bar_config = I3_IPC_MESSAGE_TYPE_GET_BAR_CONFIG,         /**< Get bar configuration that i3 uses.                 */
-    version = I3_IPC_MESSAGE_TYPE_GET_VERSION,               /**< Get version of i3.                                  */
-    binding_modes = I3_IPC_MESSAGE_TYPE_GET_BINDING_MODES,   /**< Get info about avalible binding modes in i3.        */
-    config = I3_IPC_MESSAGE_TYPE_GET_CONFIG,                 /**< Get last loaded configuration from i3.              */
-    tick = I3_IPC_MESSAGE_TYPE_SEND_TICK,                    /**< Tell i3 to broadcast given message to other IPCs.   */
-    sync = I3_IPC_MESSAGE_TYPE_SYNC,                         /**< TODO */
+    command = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_RUN_COMMAND),             /**< Execute command(s).       */
+    workspaces = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES),       /**< Get workspaces in i3.     */
+    subscribe = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SUBSCRIBE),             /**< Subscribe to event.       */
+    outputs = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_OUTPUTS),             /**< Get outputs in i3.        */
+    tree = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_TREE),                   /**< Get node tree in i3.      */
+    marks = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_MARKS),                 /**< Get marks that i3 uses.   */
+    bar_config = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_BAR_CONFIG),       /**< Get bar configuration.    */
+    version = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_VERSION),             /**< Get version of i3.        */
+    binding_modes = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_BINDING_MODES), /**< Get binding modes.        */
+    config = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_CONFIG),               /**< Get configuration.        */
+    tick = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SEND_TICK),                  /**< Broadcast message.        */
+    sync = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SYNC),                       /**< TODO */
 
     // Event message types.
-    workspace_event = I3_IPC_EVENT_WORKSPACE,                /**< Get notified when there are changes in workspaces.  */
-    output_event = I3_IPC_EVENT_OUTPUT,                      /**< Get notified when there are changes in outputs.     */
-    mode_event = I3_IPC_EVENT_MODE,                          /**< Get notified when binding mode changes.             */
-    window_event = I3_IPC_EVENT_WINDOW,                      /**< Get notified when there are changes in windows.     */
-    bar_config_update_event = I3_IPC_EVENT_BARCONFIG_UPDATE, /**< Get notified when bar configuration is updated.     */
-    binding_event = I3_IPC_EVENT_BINDING,                    /**< Get notified when binding event was triggered.      */
-    shutdown_event = I3_IPC_EVENT_SHUTDOWN,                  /**< Get notified when i3 is about to restart/shutdown.  */
-    tick_event = I3_IPC_EVENT_TICK                           /**< Get notified when IPCs broadcast message through i3.*/
+    workspace_event = static_cast<std::uint32_t>(I3_IPC_EVENT_WORKSPACE),              /**< Listen workspaces events. */
+    output_event = static_cast<std::uint32_t>(I3_IPC_EVENT_OUTPUT),                    /**< Listen outputs events.    */
+    mode_event = static_cast<std::uint32_t>(I3_IPC_EVENT_MODE),                        /**< Listen to mode changes.   */
+    window_event = static_cast<std::uint32_t>(I3_IPC_EVENT_WINDOW),                    /**< Listen window events.     */
+    bar_config_event = static_cast<std::uint32_t>(I3_IPC_EVENT_BARCONFIG_UPDATE),      /**< Listen bar config events. */
+    binding_event = static_cast<std::uint32_t>(I3_IPC_EVENT_BINDING),                  /**< Listen binding events.    */
+    shutdown_event = static_cast<std::uint32_t>(I3_IPC_EVENT_SHUTDOWN),                /**< Listen shutdown events.   */
+    tick_event = static_cast<std::uint32_t>(I3_IPC_EVENT_TICK)                         /**< Listen broadcasted events.*/
 };
 
 /**
