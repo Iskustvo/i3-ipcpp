@@ -9,20 +9,40 @@ default_build_dynamic='yes'
 default_build_examples='yes'
 default_debug_version='no'
 
-# Define function for pretty-printing of help menu.
+# Descprition   Prints the "Expected usage", "Default value" and "Description" of one option.
+#               The line is printed in format specified by "printf_table_format" global variable.
+#
+# ${1}          Name of the option. It is expected that global variable "default_${1}" exist(with '-' replaced by '_').
+#
+# ${2}          Expected value of the option.
+#
+# ${3}          Description of the option.
+print_option_usage()
+{
+    default_option="default_$(echo "${1}" | sed 'y/-/_/')"
+    printf "${printf_table_format}\n" "--${1}=${2}" "$(eval "echo \"\${${default_option}}\"")" "${3}"
+}
+
+# Descprition   Prints the usage of the script as well as usage of all avalible options.
 print_help()
 {
+    # Print script usage.
     printf 'Usage:\n\t./configure [options]\n\n\n'
-    cat <<- EOF | column -t -s '|' -N 'Option,Default value,Description'
-		|
-		--prefix=<path>|${default_prefix}|Root path where project will be installed.
-		--includedir=<path>|${default_includedir}|Path where public headers will be installed, relative to '--prefix'.
-		--libdir=<path>|${default_libdir}|Path where library will be installed, relative to '--prefix'.
-		--build-static=yes/no|${default_build_static}|Build static version of the library.
-		--build-dynamic=yes/no|${default_build_dynamic}|Build dynamic version of the library.
-		--build-examples=yes/no|${default_build_examples}|Build example programs which use this library.
-		--debug-version=yes/no|${default_debug_version}|Use no optimizations and enable asserts and debug symbols.
-	EOF
+
+    # Define table format.
+    printf_table_format='%-25s%-18s%s'
+
+    # Print header of the table.
+    printf "${printf_table_format}\n\n" 'Option' 'Default value' 'Description'
+
+    # Print usage of each avalible option as one row of the table.
+    print_option_usage 'prefix'         '<path>' 'Root path where project will be installed.'
+    print_option_usage 'includedir'     '<path>' 'Path where public headers will be installed, relative to "--prefix".'
+    print_option_usage 'libdir'         '<path>' 'Path where library will be installed, relative to "--prefix".'
+    print_option_usage 'build-static'   'yes/no' 'Build static version of the library.'
+    print_option_usage 'build-dynamic'  'yes/no' 'Build dynamic version of the library.'
+    print_option_usage 'build-examples' 'yes/no' 'Build example programs which use this library.'
+    print_option_usage 'debug-version'  'yes/no' 'Use no optimizations and enable asserts and debug symbols.'
 }
 
 # Parse options from command line.
