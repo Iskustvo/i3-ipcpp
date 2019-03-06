@@ -26,6 +26,7 @@ C++ library that implements the [i3 IPC protocol](https://i3wm.org/docs/ipc.html
 * [Internals](#internals)
   * [Overview](#overview)
   * [Code structure](#code-structure)
+* [Compatibility](#compatibility)
 * [Known issues](#known-issues)
 * [TODO](#todo)
 * [License](#license)
@@ -372,6 +373,17 @@ This picture represents the simplified overview of how library is working intern
         │   └── i3_json_parser-events.cpp   // Implements member functions of i3_json_parser class used for events.
         ├── i3_message.hpp                  // Defines i3_message namespace used for socket communication with i3.
         └── i3_message.cpp                  // Implements functions from i3_message namespace.
+
+## Compatibility ##
+
+At the moment, **i3-ipc++** supports **i3** version `4.16`.
+
+If you have older version of **i3**, there is a chance that **i3-ipc++** won't compile.  
+This will most likely happen because **i3-ipc++** is missing some defines from **i3**'s [ipc.h](https://github.com/i3/i3/blob/next/include/i3/ipc.h).  
+There are few ways to solve this:
+* Get later version of **i3** which has those defines.
+* Replace missing defines in [i3_message.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/src/i3_message.hpp) with `-1` and of course, don't use requests/events for them.
+
 
 ## Known issues ##
 
