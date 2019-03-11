@@ -310,3 +310,11 @@ void i3_json_parser::parse_tick_response(const char* a_json_string)
         throw i3_ipc_invalid_argument("Sending TICK failed");
     }
 }
+
+void i3_json_parser::parse_sync_response(const char* a_json_string)
+{
+    if (!get_attribute_value<bool>(parse_json(a_json_string), "success"))
+    {
+        throw i3_ipc_invalid_argument("Sending SYNC failed");
+    }
+}

@@ -56,7 +56,7 @@ enum class i3_message_type : std::uint32_t
     binding_modes = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_BINDING_MODES), /**< Get binding modes.        */
     config = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_CONFIG),               /**< Get configuration.        */
     tick = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SEND_TICK),                  /**< Broadcast message.        */
-    sync = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SYNC),                       /**< TODO */
+    sync = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SYNC),                       /**< Sync i3 and X11 events.   */
 
     // Event message types.
     workspace_event = static_cast<std::uint32_t>(I3_IPC_EVENT_WORKSPACE),              /**< Listen workspaces events. */

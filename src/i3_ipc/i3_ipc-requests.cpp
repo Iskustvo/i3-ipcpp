@@ -153,3 +153,11 @@ void i3_ipc::send_tick(const std::optional<std::string_view>& a_payload) const
     const std::string response = send_request(m_request_socket, i3_message_type::tick, a_payload);
     i3_json_parser::parse_tick_response(response.c_str());
 }
+
+void i3_ipc::sync(std::uint32_t a_window, std::uint32_t a_random) const
+{
+    const std::string payload = "{\"window\":" + std::to_string(a_window) + ","
+                                 "\"random\":" + std::to_string(a_random) + "}";
+    const std::string response = send_request(m_request_socket, i3_message_type::sync, payload);
+    i3_json_parser::parse_sync_response(response.c_str());
+}

@@ -259,8 +259,20 @@ public:
      */
     void send_tick(const std::optional<std::string_view>& a_payload = std::nullopt) const;
 
-    // TODO: Implement
-    //void sync();
+    /**
+     * \brief                            Tells i3 to send a message to X11 window after all events are handled.
+     *
+     * \param [in] a_window              ID of X11 window which should receive message after all events are handled.
+     *
+     * \param [in] a_random              Random number used for correlation.
+     *
+     * \throws std::system_error         When system error occurs while communicating through the socket.
+     *
+     * \throws i3_ipc_bad_message        When i3's response message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines to send sync event.
+     */
+    void sync(std::uint32_t a_window, std::uint32_t a_random) const;
 
     /**
      * \brief                      Subscribes to "workspace" event and stores callback function for it.

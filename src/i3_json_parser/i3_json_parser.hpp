@@ -165,6 +165,15 @@ public:
     static void parse_tick_response(const char* a_json_string);
 
     /**
+     * \brief                            Parses i3's response for sending sync event.
+     *
+     * \param [in] a_json_string         String containing the i3's response in JSON format.
+     *
+     * \throws i3_ipc_invalid_argument   When sending sync event failed.
+     */
+    static void parse_sync_response(const char* a_json_string);
+
+    /**
      * \brief                       Parses info about occurred workspace event.
      *
      * \param [in] a_json_string    String containing the info about occurred workspace event in JSON format.
