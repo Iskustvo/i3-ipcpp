@@ -387,7 +387,6 @@ There are few ways to solve this:
 
 ## Known issues ##
 
-* [SYNC](https://i3wm.org/docs/testsuite.html#i3_sync) request is not implemented yet.
 * Sending *restart* or *exit* through **i3_ipc::execute_commands** will always throw([#3624](https://github.com/i3/i3/pull/3624), [#3565](https://github.com/i3/i3/issues/3565)).
 * Although all exceptions are thrown, sometimes this happens later when user can't handle them properly.  
   This is the case with **i3_ipc::handle_next_event** which throws exceptions for bad subscription that should be detected right after every **i3_ipc::on_*_event** function.  
@@ -395,7 +394,6 @@ There are few ways to solve this:
 
 ## TODO ##
 
-* Implement [SYNC](https://i3wm.org/docs/testsuite.html#i3_sync) request.
 * Improve error handling by throwing exceptions at times when user can handle them properly.
 * Make [i3_ipc](#i3_ipc) class thread-safe.
 
