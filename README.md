@@ -345,14 +345,20 @@ This picture represents the simplified overview of how library is working intern
 * For asynchronous events(right half of the [picture](#overview)), the case is a bit more complicated:
   * User sends a callback function to **i3_ipc** in order for it to be executed on specific **i3** event.  
     User does so by using one of the public member functions implemented in [i3_ipc-events.cpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/src/i3_ipc/i3_ipc-events.cpp).
-  * Upon this request, **i3_ipc** subscribes to desired event to **i3** over *m_event_socket*.  
-    Afterwards, it stores the callback function in *m_callbacks* member variable.  
-    This means that **i3** will write info about subscribed events to *m_event_socket*, whenever events happen.
-  * **ONLY** when the user requests the event to be handled will this data be read from the *m_event_socket*.  
-    This is done with member function **i3_ipc::handle_next_event()**.
-  * The info for events sent by **i3** will be extracted by the **i3_json_parser**.
-  * Once the data is parsed, **i3_ipc** will hand it over to the stored callback function and execute it.
 
+  * **i3_ipc** sends subscription request to **i3** and parses events from *m_event_socket* until it reaches response.  
+    All events parsed(using the **i3_json_parser**) this way are pushed to *m_event_queue* for later handling.  
+    Afterwards, callback sent by the user is also pushed to *m_event_queue* to be used at appropriate time.
+
+  * From this point, **i3** will write info about subscribed event to *m_event_socket*, whenever event happens.
+
+  * User will handle events with **i3_ipc::handle_next_event()** member function.  
+    Events will be handled from *m_event_queue* first, and when empty, from *m_event_socket* directly.  
+    If you were careful, you should've noticed that *m_event_queue* has 2 different types of events:
+    * Callback functions that should be internally stored for execution on events.
+    * Parsed data from real **i3** events that will be passed to stored callbacks.  
+
+    **i3_ipc::handle_next_event()** will internally store callbacks and end once the **real** event is handled.
 
 ### Code structure ###
 
@@ -388,13 +394,9 @@ There are few ways to solve this:
 ## Known issues ##
 
 * Sending *restart* or *exit* through **i3_ipc::execute_commands** will always throw([#3624](https://github.com/i3/i3/pull/3624), [#3565](https://github.com/i3/i3/issues/3565)).
-* Although all exceptions are thrown, sometimes this happens later when user can't handle them properly.  
-  This is the case with **i3_ipc::handle_next_event** which throws exceptions for bad subscription that should be detected right after every **i3_ipc::on_*_event** function.  
-  If **i3** and **i3-ipc++** are compatible, this should never happen, but should be properly implemented nevertheless.
 
 ## TODO ##
 
-* Improve error handling by throwing exceptions at times when user can handle them properly.
 * Make [i3_ipc](#i3_ipc) class thread-safe.
 
 ## License ##
