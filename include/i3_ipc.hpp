@@ -30,6 +30,7 @@
 #include "i3_containers.hpp"
 
 // C++ headers.
+#include <queue>
 #include <vector>
 #include <string>
 #include <bitset>
@@ -48,6 +49,23 @@ class i3_ipc
 {
 
 public:
+
+    /**
+     * Enumerator used to describe the type of i3 events.
+     */
+    // NOTE: Keep the size and order of elements synced with "i3_ipc::i3_callback" and "i3_containers::event".
+    enum class event_type : std::uint8_t
+    {
+        workspace,         /**< Get notified when there are changes in workspaces.   */
+        output,            /**< Get notified when there are changes in outputs.      */
+        mode,              /**< Get notified when binding mode changes.              */
+        window,            /**< Get notified when there are changes in windows.      */
+        bar_config_update, /**< Get notified when bar configuration is updated.      */
+        binding,           /**< Get notified when binding event was triggered.       */
+        shutdown,          /**< Get notified when i3 is about to restart/shutdown.   */
+        tick               /**< Get notified when IPCs broadcast message through i3. */
+    };
+    static constexpr std::uint8_t number_of_event_types = 8; /**< Number of supported event types. */
 
     /**
      * \brief                      Constructor which finds the path to i3's socket and establishes connections with it.
@@ -275,109 +293,128 @@ public:
     void sync(std::uint32_t a_window, std::uint32_t a_random) const;
 
     /**
-     * \brief                      Subscribes to "workspace" event and stores callback function for it.
+     * \brief                            Subscribes to "workspace" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "workspace" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "workspace" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_workspace_event(const std::function<void(const i3_containers::workspace_event&)>& a_callback);
 
     /**
-     * \brief                      Subscribes to "output" event and stores callback function for it.
+     * \brief                            Subscribes to "output" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "output" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "output" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_output_event(const std::function<void(const i3_containers::output_event&)>& a_callback);
 
     /**
-     * \brief                      Subscribes to "mode" event and stores callback function for it.
+     * \brief                            Subscribes to "mode" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "mode" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "mode" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_mode_event(const std::function<void(const i3_containers::mode_event&)>& a_callback);
 
     /**
-     * \brief                      Subscribes to "window" event and stores callback function for it.
+     * \brief                            Subscribes to "window" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "window" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "window" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_window_event(const std::function<void(const i3_containers::window_event&)>& a_callback);
 
     /**
-     * \brief                      Subscribes to "bar_config" event and stores callback function for it.
+     * \brief                            Subscribes to "bar_config" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "bar_config" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "bar_config" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_bar_config_event(const std::function<void(const i3_containers::bar_config&)>& a_callback);
 
     /**
-     * \brief                      Subscribes to "binding" event and stores callback function for it.
+     * \brief                            Subscribes to "binding" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "binding" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "binding" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_binding_event(const std::function<void(const i3_containers::binding_event&)>& a_callback);
 
     /**
-     * \brief                      Subscribes to "shutdown" event and stores callback function for it.
+     * \brief                            Subscribes to "shutdown" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "shutdown" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "shutdown" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_shutdown_event(const std::function<void(const i3_containers::shutdown_event&)>& a_callback);
 
     /**
-     * \brief                      Subscribes to "tick" event and stores callback function for it.
+     * \brief                            Subscribes to "tick" event and stores callback function for it.
      *
-     * \param [in] a_callback      Callback function which will be executed once "tick" event is triggered.
+     * \param [in] a_callback            Callback function which will be executed once "tick" event is triggered.
      *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
      */
     void on_tick_event(const std::function<void(const i3_containers::tick_event&)>& a_callback);
 
     /**
-     * \brief                       Parses the first event from event socket and executes callback stored for it.
+     * \brief                       Handles next event by calling appropriate callback with parsed event info.
+     *
+     * \return                      Type of handled event.
      *
      * \throws std::system_error    When system error occurs while reading from event socket.
      *
      * \throws i3_ipc_bad_message   When read message is invalid.
      *
-     * \throws i3_ipc_unsupported   When value of some node property is unknown to "i3-ipc++" library.
+     * \throws i3_ipc_unsupported   When value of some property is unknown to "i3-ipc++" library during parsing.
      */
-    void handle_next_event() const;
+    event_type handle_next_event();
 
 private:
 
     /**
-     * Enumerator used to describe the type of i3 events.
-     */
-    enum class event_type : std::uint8_t
-    {
-        workspace,         /**< Get notified when there are changes in workspaces.   */
-        output,            /**< Get notified when there are changes in outputs.      */
-        mode,              /**< Get notified when binding mode changes.              */
-        window,            /**< Get notified when there are changes in windows.      */
-        bar_config_update, /**< Get notified when bar configuration is updated.      */
-        binding,           /**< Get notified when binding event was triggered.       */
-        shutdown,          /**< Get notified when i3 is about to restart/shutdown.   */
-        tick               /**< Get notified when IPCs broadcast message through i3. */
-    };
-    static constexpr std::uint8_t number_of_event_types = 8; /**< Number of supported event types. */
-
-    /**
      * Type used to store the variant of any supported event callback.
      */
+    // NOTE: Keep the size and order of elements synced with "i3_ipc::event_type" and "i3_containers::event".
     using i3_callback = std::variant<
                                      std::function<void(const i3_containers::workspace_event&)>,
                                      std::function<void(const i3_containers::output_event&)>,
@@ -391,19 +428,79 @@ private:
     static_assert(std::variant_size_v<i3_callback> == number_of_event_types, "Each event type must have one variant!");
 
     /**
-     * \brief                      Sends event subscription to i3.
-     *
-     * \param [in] a_event_type    Event for which subscription request will be sent.
-     *
-     * \throws std::system_error   When system error occurs while sending the subscription to i3.
+     * Type used to store any i3 event info or exception that prevented library to get the info.
      */
-    void subscribe(event_type a_event_type);
+    using i3_event = std::variant<i3_containers::event, std::exception_ptr>;
+
+    /**
+     * Type used to store any callback function or any i3 event info.
+     */
+    using i3_ipc_event = std::variant<i3_callback, i3_event>;
+
+    /**
+     * \brief                            Subscribes to i3's event and stores callback to react on it.
+     *
+     * \param [in] a_event_type          Type of event for which subscription request will be sent.
+     *
+     * \param [in] a_callback            Callback function which will be stored for execution on "a_event_type" event.
+     *
+     * \throws std::system_error         When system error occurs while subscribing to i3's event.
+     *
+     * \throws i3_ipc_bad_message        When i3's message is invalid.
+     *
+     * \throws i3_ipc_invalid_argument   When i3 declines subscription request.
+     */
+    void subscribe(event_type a_event_type, const i3_callback& a_callback);
+
+    /**
+     * \brief                   Stores provided callback in appropriate element of "m_callbacks".
+     *
+     * \param [in] a_callback   Callback to be stored for later use for specific event.
+     */
+    void handle_subscription_event(const i3_callback& a_callback);
+
+    /**
+     * \brief                       Handles i3 event by calling appropriate callback with provided data.
+     *
+     * \param [in] a_i3_event       Parsed data about occurred event from i3.
+     *
+     * \return                      Type of handled event.
+     *
+     * \throws i3_ipc_unsupported   When value of some property is unknown to "i3-ipc++" library during parsing.
+     */
+    event_type handle_i3_event(const i3_event& a_i3_event) const;
+
+    /**
+     * \brief                       Handles i3-ipc event by storing or calling appropriate callback.
+     *
+     * \param [in] a_i3_ipc_event   Callback which should be stored or event info which should be passed to callback.
+     *
+     * \return                      If "a_i3_ipc_event" is event info, then returned value is the type of handled event.
+     *                              Otherwise, std::nullopt is returned.
+     *
+     * \throws i3_ipc_unsupported   When value of some property is unknown to "i3-ipc++" library during parsing.
+     */
+    std::optional<event_type> handle_i3_ipc_event(const i3_ipc_event& a_i3_ipc_event);
+
+    /**
+     * \brief                       Handles next i3-ipc event from even queue or event socket.
+     *
+     * \return                      If next event is event info, then returned value is the type of handled event.
+     *                              Otherwise, std::nullopt is returned.
+     *
+     * \throws std::system_error    When system error occurs while reading from event socket.
+     *
+     * \throws i3_ipc_bad_message   When i3's message is invalid.
+     *
+     * \throws i3_ipc_unsupported   When value of some property is unknown to "i3-ipc++" library during parsing.
+     */
+    std::optional<event_type> handle_next_i3_ipc_event();
 
     std::string m_i3_socket_path;                               /**< Path to i3's socket.                          */
     int m_request_socket;                                       /**< Socket used for requests to i3.               */
     int m_event_socket;                                         /**< Socket used for event notifications from i3.  */
-    std::bitset<number_of_event_types> m_event_subscriptions;   /**< List of flags indicating event subscriptions. */
     std::array<i3_callback, number_of_event_types> m_callbacks; /**< List of callback functions for i3 events.     */
+    mutable std::queue<i3_ipc_event> m_event_queue;             /**< Queue of parsed events/subscrpitions.         */
 
 }; // class i3_ipc.
 
