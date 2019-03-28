@@ -157,8 +157,7 @@ void i3_ipc::on_tick_event(const std::function<void(const i3_containers::tick_ev
  */
 template<typename T> struct is_variant : std::false_type { };
 template<typename... Ts> struct is_variant<std::variant<Ts...>> : std::true_type { };
-// Commented out because clang complains about it being unused. Use is_variant<V>::value instead.
-//template<typename T> constexpr bool is_variant_v = is_variant<T>::value;
+template<typename T> [[maybe_unused]] constexpr bool is_variant_v = is_variant<T>::value;
 
 /**
  * \brief          Checks if type T is in the Ts... list of types.
@@ -184,7 +183,7 @@ template<typename T, typename... Ts> constexpr bool is_one_of_v = is_one_of<T, T
 template<typename T> struct literal { };
 template<typename T, typename V> struct get_index
 {
-    static_assert(is_variant<V>::value, "Second argument must be std::variant!");
+    static_assert(is_variant_v<V>, "Second argument must be std::variant!");
 };
 template<typename T, typename... Ts> struct get_index<T, std::variant<Ts...>>
 {
