@@ -20,7 +20,7 @@
 /**
  * \file "i3_message.cpp"
  *
- * Implements the "i3_message::send" and "i3_message::receive" functions from "i3_message.hpp".
+ * Contains the implementation of the functions from i3_message namespace.
  */
 
 // Library headers.
@@ -33,25 +33,24 @@
 // C++ headers.
 #include <vector>
 #include <string>
-#include <utility>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 #include <system_error>
 
 // C headers.
 #include <cstdint>
 #include <cstring>
 #include <unistd.h>
-#include <string.h>
 
 namespace
 {
     constexpr std::string_view MAGIC_STRING = I3_IPC_MAGIC; /**< Magic string used for communication with i3. */
 } // Unnamed namespace.
 
-void i3_message::send(int a_socket, i3_message_type a_type, const std::optional<std::string_view>& a_payload)
+void i3_message::send(int a_socket, i3_message::type a_type, const std::optional<std::string_view>& a_payload)
 {
-    const std::uint32_t message_type = static_cast<uint32_t>(a_type);
+    const auto message_type = static_cast<std::underlying_type_t<decltype(a_type)>>(a_type);
     const std::uint32_t payload_size = a_payload ? static_cast<std::uint32_t>(a_payload->size()) : 0;
 
     // Allocate vector big enough for whole message.
@@ -63,7 +62,7 @@ void i3_message::send(int a_socket, i3_message_type a_type, const std::optional<
     memcpy(message.data() + MAGIC_STRING.size() + sizeof(payload_size), &message_type, sizeof(message_type));
     if (a_payload)
     {
-        constexpr size_t offset = MAGIC_STRING.size() + sizeof(payload_size) + sizeof(message_type);
+        constexpr std::uint32_t offset = MAGIC_STRING.size() + sizeof(payload_size) + sizeof(message_type);
         memcpy(message.data() + offset, a_payload->data(), payload_size);
     }
 
@@ -74,7 +73,7 @@ void i3_message::send(int a_socket, i3_message_type a_type, const std::optional<
     }
 }
 
-std::pair<i3_message_type, std::string> i3_message::receive(int a_socket)
+i3_message::response i3_message::receive(int a_socket)
 {
     // Read message header.
     i3_ipc_header_t header;
@@ -84,7 +83,7 @@ std::pair<i3_message_type, std::string> i3_message::receive(int a_socket)
     }
 
     // Check if magic string is valid.
-    if (std::string_view magic_string(header.magic, MAGIC_STRING.size()); magic_string != MAGIC_STRING)
+    if (const std::string_view magic_string(header.magic, MAGIC_STRING.size()); magic_string != MAGIC_STRING)
     {
         throw i3_ipc_bad_message("Bad magic string!\n"
                                  "Expected: " + std::string(MAGIC_STRING) + "\n"
@@ -98,5 +97,5 @@ std::pair<i3_message_type, std::string> i3_message::receive(int a_socket)
         throw std::system_error(errno, std::generic_category());
     }
 
-    return { static_cast<i3_message_type>(header.type), std::string(buffer.data(), buffer.size()) };
+    return { static_cast<i3_message::type>(header.type), std::string(buffer.data(), buffer.size()) };
 }

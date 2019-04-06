@@ -20,8 +20,7 @@
 /**
  * \file i3_message.hpp
  *
- * Defines enumerator "i3_message_type" which specifies all supported message types by the i3.<br>
- * Also defines "i3_message" namespace with functions specialized for communication with i3.
+ * Defines "i3_message" namespace with functions and types specialized for communication with i3.
  */
 
 #ifndef I3_MESSAGE_HPP
@@ -32,7 +31,6 @@
 
 // C++ headers.
 #include <string>
-#include <utility>
 #include <optional>
 #include <string_view>
 
@@ -40,40 +38,49 @@
 #include <cstdint>
 
 /**
- * \brief Enumerator specifying all message types supported by i3.
- */
-enum class i3_message_type : std::uint32_t
-{
-    // Request message types.
-    command = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_RUN_COMMAND),             /**< Execute command(s).       */
-    workspaces = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES),       /**< Get workspaces in i3.     */
-    subscribe = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SUBSCRIBE),             /**< Subscribe to event.       */
-    outputs = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_OUTPUTS),             /**< Get outputs in i3.        */
-    tree = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_TREE),                   /**< Get node tree in i3.      */
-    marks = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_MARKS),                 /**< Get marks that i3 uses.   */
-    bar_config = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_BAR_CONFIG),       /**< Get bar configuration.    */
-    version = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_VERSION),             /**< Get version of i3.        */
-    binding_modes = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_BINDING_MODES), /**< Get binding modes.        */
-    config = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_CONFIG),               /**< Get configuration.        */
-    tick = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SEND_TICK),                  /**< Broadcast message.        */
-    sync = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SYNC),                       /**< Sync i3 and X11 events.   */
-
-    // Event message types.
-    workspace_event = static_cast<std::uint32_t>(I3_IPC_EVENT_WORKSPACE),              /**< Listen workspaces events. */
-    output_event = static_cast<std::uint32_t>(I3_IPC_EVENT_OUTPUT),                    /**< Listen outputs events.    */
-    mode_event = static_cast<std::uint32_t>(I3_IPC_EVENT_MODE),                        /**< Listen to mode changes.   */
-    window_event = static_cast<std::uint32_t>(I3_IPC_EVENT_WINDOW),                    /**< Listen window events.     */
-    bar_config_event = static_cast<std::uint32_t>(I3_IPC_EVENT_BARCONFIG_UPDATE),      /**< Listen bar config events. */
-    binding_event = static_cast<std::uint32_t>(I3_IPC_EVENT_BINDING),                  /**< Listen binding events.    */
-    shutdown_event = static_cast<std::uint32_t>(I3_IPC_EVENT_SHUTDOWN),                /**< Listen shutdown events.   */
-    tick_event = static_cast<std::uint32_t>(I3_IPC_EVENT_TICK)                         /**< Listen broadcasted events.*/
-};
-
-/**
- * Contains functions specialized for communication with i3.
+ * \brief   Namespace with functions and types specialized for communication with i3.
  */
 namespace i3_message
 {
+    /**
+     * \brief   Enumerator specifying all message types supported by i3.
+     */
+    enum class type : std::uint32_t
+    {
+        // Request message types.
+        command = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_RUN_COMMAND),             /**< Execute command(s).   */
+        workspaces = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES),       /**< Get workspaces in i3. */
+        subscribe = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SUBSCRIBE),             /**< Subscribe to event.   */
+        outputs = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_OUTPUTS),             /**< Get outputs in i3.    */
+        tree = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_TREE),                   /**< Get node tree in i3.  */
+        marks = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_MARKS),                 /**< Get i3's marks.       */
+        bar_config = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_BAR_CONFIG),       /**< Get bar configuration.*/
+        version = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_VERSION),             /**< Get version of i3.    */
+        binding_modes = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_BINDING_MODES), /**< Get binding modes.    */
+        config = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_GET_CONFIG),               /**< Get configuration.    */
+        tick = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SEND_TICK),                  /**< Broadcast message.    */
+        sync = static_cast<std::uint32_t>(I3_IPC_MESSAGE_TYPE_SYNC),                       /**< Sync i3<->X11 events. */
+
+        // Event message types.
+        workspace_event = static_cast<std::uint32_t>(I3_IPC_EVENT_WORKSPACE),         /**< Listen workspaces events.  */
+        output_event = static_cast<std::uint32_t>(I3_IPC_EVENT_OUTPUT),               /**< Listen outputs events.     */
+        mode_event = static_cast<std::uint32_t>(I3_IPC_EVENT_MODE),                   /**< Listen to mode changes.    */
+        window_event = static_cast<std::uint32_t>(I3_IPC_EVENT_WINDOW),               /**< Listen window events.      */
+        bar_config_event = static_cast<std::uint32_t>(I3_IPC_EVENT_BARCONFIG_UPDATE), /**< Listen bar config events.  */
+        binding_event = static_cast<std::uint32_t>(I3_IPC_EVENT_BINDING),             /**< Listen binding events.     */
+        shutdown_event = static_cast<std::uint32_t>(I3_IPC_EVENT_SHUTDOWN),           /**< Listen shutdown events.    */
+        tick_event = static_cast<std::uint32_t>(I3_IPC_EVENT_TICK)                    /**< Listen broadcasted events. */
+    };
+
+    /**
+     * \brief   Structure representing the i3's response.
+     */
+    struct response
+    {
+        type message_type;   /**< Message type.    */
+        std::string payload; /**< Message payload. */
+    };
+
     /**
      * \brief                      Constructs message from given arguments and sends it to i3.
      *
@@ -85,20 +92,21 @@ namespace i3_message
      *
      * \throws std::system_error   When system error occurs while writing to "a_socket".
      */
-    void send(int a_socket, i3_message_type a_type, const std::optional<std::string_view>& a_payload = std::nullopt);
+    void send(int a_socket, type a_type, const std::optional<std::string_view>& a_payload = std::nullopt);
 
     /**
      * \brief                       Receives message from i3 and extracts its type and content.
      *
      * \param [in] a_socket         Socket through which message will be received from i3.
      *
-     * \return                      Message type and message content.
+     * \return                      Response from i3.
      *
      * \throws std::system_error    When system error occurs while reading from "a_socket".
      *
      * \throws i3_ipc_bad_message   When magic string sent by i3 is not appropriate.
      */
-    std::pair<i3_message_type, std::string> receive(int a_socket);
+    response receive(int a_socket);
+
 } // namespace i3_message.
 
 #endif // I3_MESSAGE_HPP

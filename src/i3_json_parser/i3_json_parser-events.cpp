@@ -41,6 +41,7 @@
 #include <string>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 
 // C headers.
 #include <cstdint>
@@ -373,21 +374,22 @@ i3_containers::tick_event i3_json_parser::parse_tick_event(const char* a_json_st
     return tick_event;
 }
 
-i3_containers::event i3_json_parser::parse_event(i3_message_type a_event_type, const char* a_json_string)
+i3_containers::event i3_json_parser::parse_event(i3_message::type a_event_type, const char* a_json_string)
 {
-    switch(a_event_type)
+    switch (a_event_type)
     {
-        case i3_message_type::workspace_event:  return parse_workspace_event(a_json_string);
-        case i3_message_type::output_event:     return parse_output_event(a_json_string);
-        case i3_message_type::mode_event:       return parse_mode_event(a_json_string);
-        case i3_message_type::window_event:     return parse_window_event(a_json_string);
-        case i3_message_type::bar_config_event: return parse_bar_config(a_json_string);
-        case i3_message_type::binding_event:    return parse_binding_event(a_json_string);
-        case i3_message_type::shutdown_event:   return parse_shutdown_event(a_json_string);
-        case i3_message_type::tick_event:       return parse_tick_event(a_json_string);
+        case i3_message::type::workspace_event:  return parse_workspace_event(a_json_string);
+        case i3_message::type::output_event:     return parse_output_event(a_json_string);
+        case i3_message::type::mode_event:       return parse_mode_event(a_json_string);
+        case i3_message::type::window_event:     return parse_window_event(a_json_string);
+        case i3_message::type::bar_config_event: return parse_bar_config(a_json_string);
+        case i3_message::type::binding_event:    return parse_binding_event(a_json_string);
+        case i3_message::type::shutdown_event:   return parse_shutdown_event(a_json_string);
+        case i3_message::type::tick_event:       return parse_tick_event(a_json_string);
 
         default:
-            const std::string message_type = std::to_string(static_cast<std::uint32_t>(a_event_type));
+            using enum_underlying_type = std::underlying_type_t<decltype(a_event_type)>;
+            const std::string message_type = std::to_string(static_cast<enum_underlying_type>(a_event_type));
             throw i3_ipc_bad_message("Received unexpected message of type: " + message_type);
     }
 }

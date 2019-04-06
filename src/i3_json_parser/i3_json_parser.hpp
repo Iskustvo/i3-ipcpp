@@ -260,7 +260,7 @@ public:
      *
      * \throws i3_ipc_unsupported   When value of some property is unknown to "i3-ipc++" library.
      */
-    static i3_containers::event parse_event(i3_message_type a_event_type, const char* a_json_string);
+    static i3_containers::event parse_event(i3_message::type a_event_type, const char* a_json_string);
 
 private:
 

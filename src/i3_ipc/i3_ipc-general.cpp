@@ -29,6 +29,7 @@
 
 // C++ headers.
 #include <string>
+#include <optional>
 #include <string_view>
 #include <system_error>
 
@@ -137,27 +138,26 @@ namespace
 } // Unnamed namespace.
 
 i3_ipc::i3_ipc() : m_i3_socket_path(::find_i3_socket_path()),
-                   m_request_socket(connect_to_i3(m_i3_socket_path)),
-                   m_event_socket(connect_to_i3(m_i3_socket_path)),
-                   m_callbacks()
+                   m_socket(connect_to_i3(m_i3_socket_path)),
+                   m_callbacks(),
+                   m_event_queue()
 {
 }
 
 i3_ipc::i3_ipc(std::string_view a_i3_socket_path) : m_i3_socket_path(a_i3_socket_path),
-                                                    m_request_socket(connect_to_i3(m_i3_socket_path)),
-                                                    m_event_socket(connect_to_i3(m_i3_socket_path)),
-                                                    m_callbacks()
+                                                    m_socket(connect_to_i3(m_i3_socket_path)),
+                                                    m_callbacks(),
+                                                    m_event_queue()
 {
 }
 
 i3_ipc::i3_ipc(i3_ipc&& a_ipc) : m_i3_socket_path(std::move(a_ipc.m_i3_socket_path)),
-                                 m_request_socket(std::move(a_ipc.m_request_socket)),
-                                 m_event_socket(std::move(a_ipc.m_event_socket)),
-                                 m_callbacks(std::move(a_ipc.m_callbacks))
+                                 m_socket(std::move(a_ipc.m_socket)),
+                                 m_callbacks(std::move(a_ipc.m_callbacks)),
+                                 m_event_queue(std::move(a_ipc.m_event_queue))
 {
-    // Make sure that a_ipc doesn't close sockets upon destruction.
-    a_ipc.m_request_socket = 0;
-    a_ipc.m_event_socket = 0;
+    // Make sure that "a_ipc" doesn't close socket upon destruction.
+    a_ipc.m_socket = 0;
 }
 
 i3_ipc& i3_ipc::operator=(i3_ipc&& a_ipc)
@@ -168,7 +168,7 @@ i3_ipc& i3_ipc::operator=(i3_ipc&& a_ipc)
         return *this;
     }
 
-    // Close opened sockets.
+    // Close opened socket.
     this->~i3_ipc();
 
     // Use move constructor to take data from a_ipc.
@@ -178,13 +178,9 @@ i3_ipc& i3_ipc::operator=(i3_ipc&& a_ipc)
 
 i3_ipc::~i3_ipc()
 {
-    if (m_request_socket)
+    if (m_socket)
     {
-        close(m_request_socket);
-    }
-    if (m_event_socket)
-    {
-        close(m_event_socket);
+        close(m_socket);
     }
 }
 

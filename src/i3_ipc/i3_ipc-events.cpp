@@ -28,11 +28,13 @@
 #include "i3_message.hpp"
 #include "i3_containers.hpp"
 #include "i3_json_parser.hpp"
-#include "i3_ipc_bad_message.hpp"
 
 // C++ headers.
 #include <string>
-#include <utility>
+#include <variant>
+#include <optional>
+#include <exception>
+#include <functional>
 #include <type_traits>
 
 // C headers.
@@ -50,7 +52,7 @@ namespace
      */
     const char* create_json_subscription_request(i3_ipc::event_type a_event_type)
     {
-        switch(a_event_type)
+        switch (a_event_type)
         {
             case i3_ipc::event_type::workspace:         return "[\"workspace\"]";
             case i3_ipc::event_type::output:            return "[\"output\"]";
@@ -68,80 +70,57 @@ namespace
     }
 } // Unnamed namespace.
 
-void i3_ipc::subscribe(event_type a_event_type, const i3_callback& a_callback)
+void i3_ipc::subscribe(event_type a_event_type, const i3_callback& a_callback) const
 {
     // Subscription request should be sent to i3 even when we are already subscribed!
     // This is done to ensure that ONLY the events that happend before subscription
-    // will end up in event queue before we set new callback function.
+    // will end up in event queue before the new callback function is set.
     const char* subscription_request = create_json_subscription_request(a_event_type);
-    i3_message::send(m_event_socket, i3_message_type::subscribe, subscription_request);
+    const std::string subscription_response = send_request(i3_message::type::subscribe, subscription_request);
 
-    // Read messages from event socket until subscription response is read.
-    // Every event read in the meantime should be parsed and pushed to event queue for later handling.
-    std::pair<i3_message_type, std::string> response = i3_message::receive(m_event_socket);
-    while (response.first != i3_message_type::subscribe)
-    {
-        i3_event event;
-        try
-        {
-            event = i3_json_parser::parse_event(response.first, response.second.c_str());
-        }
-        catch(const i3_ipc_bad_message&)
-        {
-            throw;
-        }
-        catch(...)
-        {
-            event = std::current_exception();
-        }
-        m_event_queue.push(event);
-
-        response = i3_message::receive(m_event_socket);
-    }
-
-    // Check and throw i3_ipc_invalid_argument if i3 declined subscription.
-    i3_json_parser::parse_subscribe_response(response.second.c_str());
+    // Throw i3_ipc_invalid_argument if i3 declined subscription.
+    i3_json_parser::parse_subscribe_response(subscription_response.c_str());
 
     // Once the subscription is successful, push the callback to event queue to be used at appropriate time.
     m_event_queue.push(a_callback);
 }
 
-void i3_ipc::on_workspace_event(const std::function<void(const i3_containers::workspace_event&)>& a_callback)
+void i3_ipc::on_workspace_event(const std::function<void(const i3_containers::workspace_event&)>& a_callback) const
 {
     subscribe(event_type::workspace, a_callback);
 }
 
-void i3_ipc::on_output_event(const std::function<void(const i3_containers::output_event&)>& a_callback)
+void i3_ipc::on_output_event(const std::function<void(const i3_containers::output_event&)>& a_callback) const
 {
     subscribe(event_type::output, a_callback);
 }
 
-void i3_ipc::on_mode_event(const std::function<void(const i3_containers::mode_event&)>& a_callback)
+void i3_ipc::on_mode_event(const std::function<void(const i3_containers::mode_event&)>& a_callback) const
 {
     subscribe(event_type::mode, a_callback);
 }
 
-void i3_ipc::on_window_event(const std::function<void(const i3_containers::window_event&)>& a_callback)
+void i3_ipc::on_window_event(const std::function<void(const i3_containers::window_event&)>& a_callback) const
 {
     subscribe(event_type::window, a_callback);
 }
 
-void i3_ipc::on_bar_config_event(const std::function<void(const i3_containers::bar_config&)>& a_callback)
+void i3_ipc::on_bar_config_event(const std::function<void(const i3_containers::bar_config&)>& a_callback) const
 {
     subscribe(event_type::bar_config_update, a_callback);
 }
 
-void i3_ipc::on_binding_event(const std::function<void(const i3_containers::binding_event&)>& a_callback)
+void i3_ipc::on_binding_event(const std::function<void(const i3_containers::binding_event&)>& a_callback) const
 {
     subscribe(event_type::binding, a_callback);
 }
 
-void i3_ipc::on_shutdown_event(const std::function<void(const i3_containers::shutdown_event&)>& a_callback)
+void i3_ipc::on_shutdown_event(const std::function<void(const i3_containers::shutdown_event&)>& a_callback) const
 {
     subscribe(event_type::shutdown, a_callback);
 }
 
-void i3_ipc::on_tick_event(const std::function<void(const i3_containers::tick_event&)>& a_callback)
+void i3_ipc::on_tick_event(const std::function<void(const i3_containers::tick_event&)>& a_callback) const
 {
     subscribe(event_type::tick, a_callback);
 }
@@ -263,8 +242,8 @@ std::optional<i3_ipc::event_type> i3_ipc::handle_next_i3_ipc_event()
 {
     if (m_event_queue.empty())
     {
-        const std::pair<i3_message_type, std::string> response = i3_message::receive(m_event_socket);
-        const i3_event event = i3_json_parser::parse_event(response.first, response.second.c_str());
+        const i3_message::response response = i3_message::receive(m_socket);
+        const i3_event event = i3_json_parser::parse_event(response.message_type, response.payload.c_str());
         return handle_i3_event(event);
     }
 

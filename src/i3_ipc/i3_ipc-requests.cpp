@@ -33,46 +33,43 @@
 
 // C++ headers.
 #include <string>
-#include <utility>
+#include <vector>
+#include <optional>
+#include <exception>
 #include <string_view>
 
 // C headers.
 #include <cstdint>
 
-namespace
+std::string i3_ipc::send_request(i3_message::type a_type, const std::optional<std::string_view>& a_payload) const
 {
-    /**
-     * \brief                       Sends the specified request to i3 and returns its response.
-     *
-     * \param [in] a_socket         Socket throught which message exchange will happen.
-     *
-     * \param [in] a_type           Type of the request.
-     *
-     * \param [in] a_payload        Optional content of the message.
-     *
-     * \return                      Type of reply and its content.
-     *
-     * \throws std::system_error    When system error occurs while reading/writing from/to "a_socket".
-     *
-     * \throws i3_ipc_bad_message   When i3's response message is invalid.
-     */
-    std::string send_request(int a_socket,
-                             i3_message_type a_type,
-                             const std::optional<std::string_view>& a_payload = std::nullopt)
+    i3_message::send(m_socket, a_type, a_payload);
+
+    // Read messages from socket until response is read.
+    // Every event read in the meantime should be parsed and pushed to event queue for later handling.
+    i3_message::response response = i3_message::receive(m_socket);
+    while (response.message_type != a_type)
     {
-        i3_message::send(a_socket, a_type, a_payload);
-        const std::pair<i3_message_type, std::string> response = i3_message::receive(a_socket);
-
-        if (response.first != a_type)
+        i3_event event;
+        try
         {
-            throw i3_ipc_bad_message("Wrong message type!\n"
-                                     "Expected: " + std::to_string(static_cast<std::uint32_t>(a_type)) + "\n"
-                                     "Received: " + std::to_string(static_cast<std::uint32_t>(response.first)));
+            event = i3_json_parser::parse_event(response.message_type, response.payload.c_str());
         }
+        catch(const i3_ipc_bad_message&)
+        {
+            throw;
+        }
+        catch(...)
+        {
+            event = std::current_exception();
+        }
+        m_event_queue.push(event);
 
-        return response.second;
+        response = i3_message::receive(m_socket);
     }
-} // Unnamed namespace
+
+    return response.payload;
+}
 
 void i3_ipc::execute_commands(std::string_view a_commands) const
 {
@@ -81,43 +78,43 @@ void i3_ipc::execute_commands(std::string_view a_commands) const
         return;
     }
 
-    const std::string response = send_request(m_request_socket, i3_message_type::command, a_commands);
+    const std::string response = send_request(i3_message::type::command, a_commands);
     i3_json_parser::parse_command_response(response.c_str());
 }
 
 std::vector<i3_containers::workspace> i3_ipc::get_workspaces() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::workspaces);
+    const std::string response = send_request(i3_message::type::workspaces);
     return i3_json_parser::parse_workspaces(response.c_str());
 }
 
 std::vector<i3_containers::output> i3_ipc::get_outputs() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::outputs);
+    const std::string response = send_request(i3_message::type::outputs);
     return i3_json_parser::parse_outputs(response.c_str());
 }
 
 i3_containers::node i3_ipc::get_tree() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::tree);
+    const std::string response = send_request(i3_message::type::tree);
     return i3_json_parser::parse_tree(response.c_str());
 }
 
 std::vector<std::string> i3_ipc::get_marks() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::marks);
+    const std::string response = send_request(i3_message::type::marks);
     return i3_json_parser::parse_marks(response.c_str());
 }
 
 std::vector<std::string> i3_ipc::get_bar_IDs() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::bar_config);
+    const std::string response = send_request(i3_message::type::bar_config);
     return i3_json_parser::parse_bar_names(response.c_str());
 }
 
 i3_containers::bar_config i3_ipc::get_bar_config(std::string_view a_bar_ID) const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::bar_config, a_bar_ID);
+    const std::string response = send_request(i3_message::type::bar_config, a_bar_ID);
 
     try
     {
@@ -132,25 +129,25 @@ i3_containers::bar_config i3_ipc::get_bar_config(std::string_view a_bar_ID) cons
 
 i3_containers::version i3_ipc::get_version() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::version);
+    const std::string response = send_request(i3_message::type::version);
     return i3_json_parser::parse_version(response.c_str());
 }
 
 std::vector<std::string> i3_ipc::get_binding_modes() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::binding_modes);
+    const std::string response = send_request(i3_message::type::binding_modes);
     return i3_json_parser::parse_binding_modes(response.c_str());
 }
 
 std::string i3_ipc::get_config() const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::config);
+    const std::string response = send_request(i3_message::type::config);
     return i3_json_parser::parse_config(response.c_str());
 }
 
 void i3_ipc::send_tick(const std::optional<std::string_view>& a_payload) const
 {
-    const std::string response = send_request(m_request_socket, i3_message_type::tick, a_payload);
+    const std::string response = send_request(i3_message::type::tick, a_payload);
     i3_json_parser::parse_tick_response(response.c_str());
 }
 
@@ -158,6 +155,6 @@ void i3_ipc::sync(std::uint32_t a_window, std::uint32_t a_random) const
 {
     const std::string payload = "{\"window\":" + std::to_string(a_window) + ","
                                  "\"random\":" + std::to_string(a_random) + "}";
-    const std::string response = send_request(m_request_socket, i3_message_type::sync, payload);
+    const std::string response = send_request(i3_message::type::sync, payload);
     i3_json_parser::parse_sync_response(response.c_str());
 }
