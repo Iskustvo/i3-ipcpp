@@ -6,8 +6,9 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <string_view>
 
-std::string bar_mode_to_string(const i3_containers::bar_mode& a_mode)
+std::string_view bar_mode_to_string(const i3_containers::bar_mode& a_mode)
 {
     switch (a_mode)
     {
@@ -20,7 +21,7 @@ std::string bar_mode_to_string(const i3_containers::bar_mode& a_mode)
     return "Unknown";
 }
 
-std::string bar_position_to_string(const i3_containers::bar_position& a_position)
+std::string_view bar_position_to_string(const i3_containers::bar_position& a_position)
 {
     switch (a_position)
     {

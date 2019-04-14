@@ -5,6 +5,7 @@
 // C++ headers.
 #include <string>
 #include <iostream>
+#include <string_view>
 
 void print_i3_tree(const i3_containers::node& a_node, const std::string& a_indent = "")
 {
@@ -13,24 +14,29 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
               << a_indent << "Name: \"" << a_node.name.value_or("None") << "\"\n";
 
     // Print node type.
-    std::string type;
+    std::string_view type;
     switch (a_node.type)
     {
         case i3_containers::node_type::root:
             type = "Root";
             break;
+
         case i3_containers::node_type::output:
             type = "Output";
             break;
+
         case i3_containers::node_type::con:
             type = "Container";
             break;
+
         case i3_containers::node_type::floating_con:
             type = "Floating container";
             break;
+
         case i3_containers::node_type::workspace:
             type = "Workspace";
             break;
+
         case i3_containers::node_type::dockarea:
             type = "Dockarea";
             break;
@@ -38,15 +44,17 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
     std::cout << a_indent << "Type: \"" << type << "\"\n";
 
     // Print border style.
-    std::string border;
+    std::string_view border;
     switch (a_node.border)
     {
         case i3_containers::border_style::normal:
             border = "Normal";
             break;
+
         case i3_containers::border_style::none:
             border = "None";
             break;
+
         case i3_containers::border_style::pixel:
             border = "Pixel";
             break;
@@ -64,24 +72,29 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
     }
 
     // Print layout.
-    std::string layout;
+    std::string_view layout;
     switch (a_node.layout)
     {
         case i3_containers::node_layout::splith:
             layout = "Horizontal split";
             break;
+
         case i3_containers::node_layout::splitv:
             layout = "Vertical split";
             break;
+
         case i3_containers::node_layout::stacked:
             layout = "Stacked";
             break;
+
         case i3_containers::node_layout::tabbed:
             layout = "Tabbed";
             break;
+
         case i3_containers::node_layout::dockarea:
             layout = "Dockarea";
             break;
+
         case i3_containers::node_layout::output:
             layout = "Output";
             break;
@@ -153,18 +166,20 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
     }
     std::cout << "\n";
 
-    // Print the fullscreen_mode of the window.
-    std::string fullscreen_mode;
-    switch(a_node.fullscreen_mode)
+    // Print the fullscreen mode of the window.
+    std::string_view fullscreen_mode;
+    switch (a_node.fullscreen_mode)
     {
         case i3_containers::fullscreen_mode_type::no_fullscreen:
-            fullscreen_mode = "no_fullscreen";
+            fullscreen_mode = "None";
             break;
+
         case i3_containers::fullscreen_mode_type::local_fullscreen:
-            fullscreen_mode = "local_fullscreen";
+            fullscreen_mode = "Local fullscreen";
             break;
+
         case i3_containers::fullscreen_mode_type::global_fullscreen:
-            fullscreen_mode = "global_fullscreen";
+            fullscreen_mode = "Global fullscreen";
             break;
     }
     std::cout << a_indent << "Fullscreen mode: " << fullscreen_mode << "\n";

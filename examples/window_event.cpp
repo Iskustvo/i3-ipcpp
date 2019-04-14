@@ -7,9 +7,6 @@
 #include <chrono>
 #include <iostream>
 
-// C headers.
-#include <cstdlib>
-
 int main()
 {
     // Create ipc object and connect it to running i3 process.
@@ -21,27 +18,21 @@ int main()
                            if (event.change == i3_containers::window_change::fullscreen_mode)
                            {
                                std::cout << "Detected fullscreen mode change!\n"
-                                            "Sleeping 2 seconds..." << std::endl;
+                                            "Sleeping for 2 seconds." << std::endl;
                                std::this_thread::sleep_for(std::chrono::seconds(2));
 
-                               std::cout << "Returning it back!" << std::endl;
+                               std::cout << "Reverting fullscreen mode back!" << std::endl;
                                i3.execute_commands("fullscreen toggle");
-
-                               exit(EXIT_SUCCESS);
                            }
                        }
                       );
 
-    std::cout << "Toggling fullscreen mode in 2 seconds!" << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    // Toggle window fullscreen.
-    // i3 will notice this and send window event.
+    // Toggle window fullscreen. i3 will notice this and send window event.
+    std::cout << "Toggling fullscreen mode!" << std::endl;
     i3.execute_commands("fullscreen toggle");
 
-    // Handle window events until fullscreen mode change is handled, then lambda callback will revert it and exit.
-    while (true)
-    {
-        i3.handle_next_event();
-    }
+    // Handle window event - Lambda callback will notice that fullscreen mode changed and revert it.
+    i3.handle_next_event();
+
+    return 0;
 }
