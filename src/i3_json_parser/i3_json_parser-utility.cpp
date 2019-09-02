@@ -181,6 +181,22 @@ namespace
 
         return window;
     }
+
+    /**
+     * \brief                      Extracts the fullscreen_mode of the window from the JSON object.
+     *
+     * \param [in] a_json_object   JSON object.
+     *
+     * \return                     Extracted fullscreen_mode.
+     */
+    i3_containers::fullscreen_mode_type extract_fullscreen_mode(const rapidjson::Value& a_json_object)
+    {
+        assert(a_json_object.IsObject());
+        assert(a_json_object.HasMember("fullscreen_mode") && a_json_object["fullscreen_mode"].IsUint());
+
+        const auto val = get_attribute_value<std::uint8_t>(a_json_object, "fullscreen_mode");
+        return static_cast<i3_containers::fullscreen_mode_type>(val);
+    }
 } // Unnamed namespace.
 
 rapidjson::Document i3_json_parser::parse_json(const char* a_json_string)
@@ -228,6 +244,7 @@ i3_containers::node i3_json_parser::extract_tree(const rapidjson::Value& a_json_
     node.window_properties = extract_window_properties(a_json_object);
     node.is_urgent = get_attribute_value<bool>(a_json_object, "urgent");
     node.is_focused = get_attribute_value<bool>(a_json_object, "focused");
+    node.fullscreen_mode = extract_fullscreen_mode(a_json_object);
 
     // Extract list of node IDs that have focus.
     assert(a_json_object.HasMember("focus"));

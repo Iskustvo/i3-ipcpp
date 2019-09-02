@@ -153,6 +153,22 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
     }
     std::cout << "\n";
 
+    // Print the fullscreen_mode of the window.
+    std::string fullscreen_mode;
+    switch(a_node.fullscreen_mode)
+    {
+        case i3_containers::fullscreen_mode_type::no_fullscreen:
+            fullscreen_mode = "no_fullscreen";
+            break;
+        case i3_containers::fullscreen_mode_type::local_fullscreen:
+            fullscreen_mode = "local_fullscreen";
+            break;
+        case i3_containers::fullscreen_mode_type::global_fullscreen:
+            fullscreen_mode = "global_fullscreen";
+            break;
+    }
+    std::cout << a_indent << "Fullscreen mode: " << fullscreen_mode << "\n";
+
     // Recursively print info about all tilling nodes that are children of this node.
     std::cout << a_indent << "Tilling children nodes:" << (a_node.nodes.empty() ? " None" : "") << std::endl;
     for (const auto& node : a_node.nodes)

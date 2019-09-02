@@ -126,6 +126,16 @@ namespace i3_containers
     };
 
     /**
+     * Enumerator used to describe the fullscreen mode of a window.
+     */
+    enum class fullscreen_mode_type : std::uint8_t
+    {
+        no_fullscreen,    /**< No fullscreen.                                           */
+        local_fullscreen, /**< Local fullscreen (window is fullscreened on its output). */
+        global_fullscreen /**< Global fullscreen (window is globally fullscreened).     */
+    };
+
+    /**
      * Structure used to represent one i3 node/container.
      */
     struct node
@@ -146,6 +156,7 @@ namespace i3_containers
         bool is_urgent;                                   /**< Whether the container is (in)directly urgent or not.   */
         bool is_focused;                                  /**< Whether the container is currently focused or not.     */
         std::vector<std::uint64_t> focus;                 /**< List of child node IDs in focus order.                 */
+        fullscreen_mode_type fullscreen_mode;             /**< The fullscreen mode of the container.                  */
         std::vector<node> nodes;                          /**< The tiling child containers of this node.              */
         std::vector<node> floating_nodes;                 /**< The floating child containers of this node.            */
     };
