@@ -42,7 +42,7 @@ print_help()
     print_option_usage 'build-static'   'yes/no' 'Build static version of the library.'
     print_option_usage 'build-dynamic'  'yes/no' 'Build dynamic version of the library.'
     print_option_usage 'build-examples' 'yes/no' 'Build example programs which use this library.'
-    print_option_usage 'debug-version'  'yes/no' 'Use no optimizations and enable asserts and debug symbols.'
+    print_option_usage 'debug-version'  'yes/no' 'Use no optimizations, enable asserts and debug symbols.'
 }
 
 # Parse options from command line.
@@ -173,3 +173,19 @@ cat <<- EOF
 	--build-examples=${build_examples}
 	--debug-version=${debug_version}
 EOF
+
+# Inform the user of the next step that he needs to make.
+printf '\n%s\n' "Invoke 'make' with one of the following goals."
+printf '%s\n\n' '----------------------------------------------'
+
+# List and describe available make goals.
+printf '%-15s%s\n\n' 'Goal'         'Description'
+printf '%-15s%s\n'   'all(default)' 'Builds the parts of project defined by current configuration.'
+printf '%-15s%s\n'   'html'         'Builds the project documentation in HTML format.'
+printf '%-15s%s\n'   'pdf'          'Builds the project documentation in PDF format.'
+printf '%-15s%s\n'   'docs'         'Builds the project documentation in all supported formats.'
+printf '%-15s%s\n'   'simulation'   'Generates the simulation images - See docs/simulator/README.md for more info.'
+printf '%-15s%s\n'   'install'      'Installs the built parts of the project defined by current configuration.'
+printf '%-15s%s\n'   'uninstall'    'Deletes the installed files with current configuraion.'
+printf '%-15s%s\n'   'clean'        'Deletes the whole build directory and everything in it.'
+printf '%-15s%s\n'   'distclean'    'Deletes all intermediate files in the project and resets the configuration.'
