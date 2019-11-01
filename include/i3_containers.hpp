@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_containers.hpp
+ * \file    i3_containers.hpp
  *
- * Defines "i3_containers" namespace which provides containers needed to store any data received from i3.
+ * \brief   Defines "i3_containers" namespace which provides containers needed to store any data received from i3.
  */
 
 #ifndef I3_CONTAINERS_HPP
@@ -36,12 +36,12 @@
 #include <cstdint>
 
 /**
- * Defines containers for all info that i3 can provide.
+ * \brief   Defines containers for all info that i3 can provide.
  */
 namespace i3_containers
 {
     /**
-     * Structutre used to represent windows.
+     * \brief   Structutre used to represent windows.
      */
     struct rectangle
     {
@@ -52,7 +52,7 @@ namespace i3_containers
     };
 
     /**
-     * Structutre used to represent one workspace.
+     * \brief   Structutre used to represent one workspace.
      */
     struct workspace
     {
@@ -66,7 +66,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent one video output(Monitor).
+     * \brief   Structure used to represent one video output(Monitor).
      */
     struct output
     {
@@ -78,7 +78,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the type of i3 node/container.
+     * \brief   Enumerator used to describe the type of i3 node/container.
      */
     enum class node_type : std::uint8_t
     {
@@ -91,7 +91,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the type of border between windows.
+     * \brief   Enumerator used to describe the type of border between windows.
      */
     enum class border_style : std::uint8_t
     {
@@ -101,7 +101,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the layout of i3 node/container.
+     * \brief   Enumerator used to describe the layout of i3 node/container.
      */
     enum class node_layout : std::uint8_t
     {
@@ -114,7 +114,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent X11 window.
+     * \brief   Structure used to represent X11 window.
      */
     struct x11_window
     {
@@ -126,7 +126,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the fullscreen mode of a window.
+     * \brief   Enumerator used to describe the fullscreen mode of a window.
      */
     enum class fullscreen_mode_type : std::uint8_t
     {
@@ -136,7 +136,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent one i3 node/container.
+     * \brief   Structure used to represent one i3 node/container.
      */
     struct node
     {
@@ -162,7 +162,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the mode of i3 bar.
+     * \brief   Enumerator used to describe the mode of i3 bar.
      */
     enum class bar_mode : std::uint8_t
     {
@@ -171,7 +171,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the position of i3 bar.
+     * \brief   Enumerator used to describe the position of i3 bar.
      */
     enum class bar_position : std::uint8_t
     {
@@ -180,7 +180,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent color settings on i3 bar.
+     * \brief   Structure used to represent color settings on i3 bar.
      */
     struct bar_colors
     {
@@ -215,7 +215,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent i3 bar.
+     * \brief   Structure used to represent i3 bar.
      */
     struct bar_config
     {
@@ -231,7 +231,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent version of i3.
+     * \brief   Structure used to represent version of i3.
      */
     struct version
     {
@@ -243,7 +243,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the workspace change.
+     * \brief   Enumerator used to describe the workspace change.
      */
     enum class workspace_change : std::uint8_t
     {
@@ -258,7 +258,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent workspace event.
+     * \brief   Structure used to represent workspace event.
      */
     struct workspace_event
     {
@@ -268,7 +268,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the output change.
+     * \brief   Enumerator used to describe the output change.
      */
     enum class output_change : std::uint8_t
     {
@@ -276,7 +276,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent output event.
+     * \brief   Structure used to represent output event.
      */
     struct output_event
     {
@@ -284,7 +284,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent mode change event.
+     * \brief   Structure used to represent mode change event.
      */
     struct mode_event
     {
@@ -293,7 +293,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the window change.
+     * \brief   Enumerator used to describe the window change.
      */
     enum class window_change : std::uint8_t
     {
@@ -309,7 +309,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent window event.
+     * \brief   Structure used to represent window event.
      */
     struct window_event
     {
@@ -318,12 +318,12 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent update event for bar config.
+     * \brief   Structure used to represent update event for bar config.
      */
     using bar_config_event = bar_config;
 
     /**
-     * Enumerator used to describe the binding change.
+     * \brief   Enumerator used to describe the binding change.
      */
     enum class binding_change : std::uint8_t
     {
@@ -331,7 +331,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the binding input type.
+     * \brief   Enumerator used to describe the binding input type.
      */
     enum class binding_input_type : std::uint8_t
     {
@@ -340,7 +340,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent binding info.
+     * \brief   Structure used to represent binding info.
      */
     struct binding_info
     {
@@ -352,7 +352,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent binding event.
+     * \brief   Structure used to represent binding event.
      */
     struct binding_event
     {
@@ -361,7 +361,7 @@ namespace i3_containers
     };
 
     /**
-     * Enumerator used to describe the shutdown type.
+     * \brief   Enumerator used to describe the shutdown type.
      */
     enum class shutdown_type : std::uint8_t
     {
@@ -370,7 +370,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent shutdown event.
+     * \brief   Structure used to represent shutdown event.
      */
     struct shutdown_event
     {
@@ -378,7 +378,7 @@ namespace i3_containers
     };
 
     /**
-     * Structure used to represent tick event.
+     * \brief   Structure used to represent tick event.
      */
     struct tick_event
     {
@@ -387,7 +387,7 @@ namespace i3_containers
     };
 
     /**
-     * Type used to store info of any supported i3 event.
+     * \brief   Type used to store info of any supported i3 event.
      */
     // NOTE: Keep the size and order of elements synced with "i3_ipc::event_type" and "i3_ipc::i3_callback".
     using event = std::variant<

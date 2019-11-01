@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_message.hpp
+ * \file    i3_message.hpp
  *
- * Defines "i3_message" namespace with functions and types specialized for communication with i3.
+ * \brief   Defines "i3_message" namespace with functions and types specialized for communication with i3.
  */
 
 #ifndef I3_MESSAGE_HPP

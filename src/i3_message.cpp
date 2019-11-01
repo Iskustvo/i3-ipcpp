@@ -18,9 +18,9 @@
 */
 
 /**
- * \file "i3_message.cpp"
+ * \file    i3_message.cpp
  *
- * Contains the implementation of the functions from i3_message namespace.
+ * \brief   Contains the implementation of the functions from i3_message namespace.
  */
 
 // Library headers.

@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_json_parser-events.cpp
+ * \file    i3_json_parser-events.cpp
  *
- * Defines member functions of "i3_json_parser" class that are used for parsing the data from events.
+ * \brief   Defines member functions of "i3_json_parser" class that are used for parsing the data from events.
  */
 
 // Library headers.

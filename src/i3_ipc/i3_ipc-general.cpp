@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc-general.cpp
+ * \file    i3_ipc-general.cpp
  *
- * Defines member functions of "i3_ipc" class that have general purpose.
+ * \brief   Defines member functions of "i3_ipc" class that have general purpose.
  */
 
 // Library headers.

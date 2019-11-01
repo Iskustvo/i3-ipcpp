@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_bad_message.cpp
+ * \file    i3_ipc_bad_message.cpp
  *
- * Implements member functions of "i3_ipc_bad_message" class.
+ * \brief   Implements member functions of "i3_ipc_bad_message" class.
  */
 
 // Library headers.

@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_json_parser.hpp
+ * \file    i3_json_parser.hpp
  *
- * Defines "i3_json_parser" class used for parsing the JSON messages sent by i3.
+ * \brief   Defines "i3_json_parser" class used for parsing the JSON messages sent by i3.
  */
 
 #ifndef I3_JSON_PARSER_HPP
@@ -38,10 +38,10 @@
 #include <string>
 
 /**
- * This class is used for parsing the JSON messages sent by i3.<br>
- * The class is abstract and since all member functions are static, it is intended to be used as a namespace.<br>
- * Implementation of this class is spread over several files in "src/i3_json_parser/" directory.(see README.md)
+ * \brief   This class is used for parsing the JSON messages sent by i3.
  */
+// NOTE: This class is abstract and is intended to be used as a namespace.
+// NOTE: Implementation of this class is spread over several files in "src/i3_json_parser" directory.(see README.md)
 class i3_json_parser
 {
 

@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_json_parser-requests.cpp
+ * \file    i3_json_parser-requests.cpp
  *
- * Defines member functions of "i3_json_parser" class that are used for parsing the data from requests.
+ * \brief   Defines member functions of "i3_json_parser" class that are used for parsing the data from requests.
  */
 
 // Library headers.

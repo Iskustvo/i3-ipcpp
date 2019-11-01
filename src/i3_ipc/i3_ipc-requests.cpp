@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc-requests.cpp
+ * \file    i3_ipc-requests.cpp
  *
- * Defines member functions of "i3_ipc" class used for synchronous requests.
+ * \brief   Defines member functions of "i3_ipc" class used for synchronous requests.
  */
 
 // Library headers.

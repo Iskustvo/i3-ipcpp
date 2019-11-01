@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_bad_message.hpp
+ * \file    i3_ipc_bad_message.hpp
  *
- * Defines "i3_ipc_bad_message" class used for throwing errors about unexpected/invalid messages received from i3.
+ * \brief   Defines "i3_ipc_bad_message" class used for throwing errors about invalid messages received from i3.
  */
 
 #ifndef I3_IPC_BAD_MESSAGE_HPP

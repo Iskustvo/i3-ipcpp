@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc-events.cpp
+ * \file    i3_ipc-events.cpp
  *
- * Defines member functions of "i3_ipc" class used for asynchronous events.
+ * \brief   Defines member functions of "i3_ipc" class used for asynchronous events.
  */
 
 // Library headers.

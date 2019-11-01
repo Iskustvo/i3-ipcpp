@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_invalid_argument.cpp
+ * \file    i3_ipc_invalid_argument.cpp
  *
- * Implements member functions of "i3_ipc_invalid_argument" class.
+ * \brief   Implements member functions of "i3_ipc_invalid_argument" class.
  */
 
 // Library headers.

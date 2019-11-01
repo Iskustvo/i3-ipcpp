@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc.hpp
+ * \file    i3_ipc.hpp
  *
- * Defines "i3_ipc" class used for over-socket communication with running i3 window manager.
+ * \brief   Defines "i3_ipc" class used for over-socket communication with running i3 window manager.
  */
 
 #ifndef I3_IPC_HPP
@@ -47,16 +47,16 @@
 namespace i3_message{enum class type : std::uint32_t;}
 
 /**
- * This class is used for over-socket communication with running i3 window manager.<br>
- * Implementation of this class is spread over several files in "src/i3_ipc/" directory.(see README.md)
+ * \brief   This class is used for over-socket communication with running i3 window manager.
  */
+// NOTE: Implementation of this class is spread over several files in "src/i3_ipc/" directory.(see README.md)
 class i3_ipc
 {
 
 public:
 
     /**
-     * Enumerator used to describe the type of i3 events.
+     * \brief   Enumerator used to describe the type of i3 events.
      */
     // NOTE: Keep the size and order of elements synced with "i3_ipc::i3_callback" and "i3_containers::event".
     enum class event_type : std::uint8_t
@@ -417,7 +417,7 @@ public:
 private:
 
     /**
-     * Type used to store the variant of any supported event callback.
+     * \brief   Type used to store the variant of any supported event callback.
      */
     // NOTE: Keep the size and order of elements synced with "i3_ipc::event_type" and "i3_containers::event".
     using i3_callback = std::variant<
@@ -433,12 +433,12 @@ private:
     static_assert(std::variant_size_v<i3_callback> == number_of_event_types, "Each event type must have one variant!");
 
     /**
-     * Type used to store any i3 event info or exception that prevented library to get the info.
+     * \brief   Type used to store any i3 event info or exception that prevented library from getting the info.
      */
     using i3_event = std::variant<i3_containers::event, std::exception_ptr>;
 
     /**
-     * Type used to store any callback function or any i3 event info.
+     * \brief   Type used to store any callback function or any i3 event info.
      */
     using i3_ipc_event = std::variant<i3_callback, i3_event>;
 
@@ -521,6 +521,6 @@ private:
     std::array<i3_callback, number_of_event_types> m_callbacks; /**< List of callback functions for i3 events. */
     mutable std::queue<i3_ipc_event> m_event_queue;             /**< Queue of parsed events/subscrpitions.     */
 
-}; // class i3_ipc.
+}; // class i3_ipc
 
 #endif // I3_IPC_HPP
