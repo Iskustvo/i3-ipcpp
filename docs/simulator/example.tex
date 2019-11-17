@@ -1,0 +1,18 @@
+\documentclass {simulator}
+
+\begin {document}
+
+    \simulate
+    {
+        \onWindowEvent,   % Give i3-ipc++ library new callback to use for "window" events and subscribe for them to i3.
+        \windowEvent,     % Simulate happening of "window" event on i3's side.
+        \getTree,         % Request "tree" data from i3-ipc++ which will get it from i3.
+        \windowEvent,     % Simulate happening of "window" event on i3's side.
+        \onWindowEvent,   % Give i3-ipc++ library new callback to use for "window" events and subscribe for them to i3.
+        \handleNextEvent, % Handle next event that happened or will happen. This works only on subscribed events.
+        \handleNextEvent, % Handle next event that happened or will happen. This works only on subscribed events.
+        \windowEvent,     % Simulate happening of "window" event on i3's side.
+        \handleNextEvent  % Handle next event that happened or will happen. This works only on subscribed events.
+    }
+
+\end {document}

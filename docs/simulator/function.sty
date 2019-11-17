@@ -1,0 +1,583 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file defines structure "function" and methods that interact with it.
+% One function has three fields:
+% - Function name
+% - Package list representing the arguments it sends.
+% - Package list representing the return arguments it expects back.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {function}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {tikz}
+\RequirePackage {expl3}
+\RequirePackage {package}
+\RequirePackage {settings}
+\RequirePackage {package_list}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIKZ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    % s_function___function_label
+    %
+    % Style for drawing function label.
+    %
+    \tikzstyle {s_function___function_label} = [
+                                                inner~sep = 0mm,
+                                                outer~sep = 0mm,
+                                                anchor = south,
+                                                text = \l_function___label_color
+                                               ]
+
+    % s_function___function_arrow
+    %
+    % Style for drawing function arrow.
+    %
+    \tikzstyle {s_function___function_arrow} = [
+                                                - {
+                                                   Stealth [
+                                                            length = \the\c_settings___function_arrow_tip_width,
+                                                            width = \the\c_settings___function_arrow_tip_height
+                                                           ]
+                                                  },
+                                                line~width = \c_settings___function_arrow_height,
+                                                \l_function___function_arrow_color
+                                               ]
+
+    % s_function___return_arrow
+    %
+    % Style for drawing function return arrow.
+    %
+    \tikzstyle {s_function___return_arrow} = [
+                                              - {
+                                                 Stealth [
+                                                          length = \the\c_settings___return_arrow_tip_width,
+                                                          width = \the\c_settings___return_arrow_tip_height
+                                                         ]
+                                                },
+                                              line~width = \c_settings___return_arrow_height,
+                                              dashed,
+                                              \l_function___return_arrow_color
+                                             ]
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CONSTANTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    % Indexes of available fields in function structure.
+    \int_const:Nn \c_function___name_index {1}
+    \int_const:Nn \c_function___package_list_index {2}
+    \int_const:Nn \c_function___return_package_list_index {3}
+
+    % Number of fields in package structure.
+    \int_const:Nn \c_function___number_of_fields {3}
+
+    % Function drawing dimensions.
+    \dim_const:Nn \c_function___maximum_function_arrow_height
+    {
+        \utility___dim_max:nnn {\c_settings___package_size}
+                               {\c_settings___function_arrow_height}
+                               {\c_settings___function_arrow_tip_height}
+    }
+    \dim_const:Nn \c_function___maximum_return_arrow_height
+    {
+        \utility___dim_max:nnn {\c_settings___package_size}
+                               {\c_settings___return_arrow_height}
+                               {\c_settings___return_arrow_tip_height}
+    }
+
+    % Font used when drawing function names.
+    \utility___const_font:NV \c_function___function_label_font \c_settings___function_label_font_size
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ERROR CHECKS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    \utility___enable_error_checks_in_module:n {function}
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+% FUNCTION CONSTRUCTION
+
+    % \function___new:N #1
+    %
+    % Creates a new empty function variable.
+    %
+    % #1 -> Name of the new function variable.
+    %
+    \cs_new_protected:Npn \function___new:N #1
+    {
+        \clist_clear_new:N #1
+        \clist_set:Nn #1 {{},{},{}}
+    }
+
+    % \function___const:(Nn|Nx) #1 #2
+    %
+    % Creates a new const function variable.
+    %
+    % #1 -> Name of the new const function variable.
+    %
+    % #2 -> Value to be set to new constant function variable.
+    %
+    %%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%
+    \function___new:N \l_function___tmp_function %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \function___const:Nn #1 #2
+    {
+        % Use \function___set to perform checks on input data from #2.
+        \function___set:Nn \l_function___tmp_function {#2}
+        \clist_const:NV #1 \l_function___tmp_function
+    }
+    \cs_generate_variant:Nn \function___const:Nn {Nx}
+
+% GETTING INFO FROM FUNCTION
+
+    % \function___get_name:(N|n|V|e) #1
+    %
+    % Leaves the name of function #1 into the input stream.
+    %
+    % #1 -> Function.
+    %
+    \cs_new:Npn \function___get_name:n #1
+    {
+        \utility___clist_check_number_of_elements:nVn {#1} \c_function___number_of_fields {function}
+        \clist_item:nn {#1} {\c_function___name_index}
+    }
+    \cs_generate_variant:Nn \function___get_name:n {V, e}
+    \cs_new:Npn \function___get_name:N #1 { \function___get_name:V #1}
+
+    % \function___get_label:(N|n|V|e) #1
+    %
+    % Leaves font settings along with the function name of function #1 into the input stream.
+    %
+    % #1 -> Function.
+    %
+    \cs_new:Npn \function___get_label:n #1
+    {
+        \exp_not:V \c_function___function_label_font
+        \function___get_name:n {#1}
+    }
+    \cs_generate_variant:Nn \function___get_label:n {V, e}
+    \cs_new:Npn \function_get___label:N #1 { \function___get_label:V #1}
+
+    % \function___get_packages:(N|n|V) #1
+    %
+    % Leaves the package list of function #1 into the input stream.
+    %
+    % #1 -> Function variable.
+    %
+    \cs_new:Npn \function___get_packages:n #1
+    {
+        \utility___clist_check_number_of_elements:nVn {#1} \c_function___number_of_fields {function}
+        \clist_item:nn {#1} {\c_function___package_list_index}
+    }
+    \cs_generate_variant:Nn \function___get_packages:n {V}
+    \cs_new:Npn \function___get_packages:N #1 { \function___get_packages:V #1}
+
+    % \function___get_only_package:(n|V) #1
+    %
+    % Leaves the only package of function #1 into the input stream.
+    %
+    % #1 -> Function.
+    %
+    \cs_new:Npn \function___get_only_package:n #1
+    {
+        \utility___clist_check_number_of_elements:enn {\function___get_packages:n {#1}} {1} {function}
+        \package_list___item:en {\function___get_packages:n {#1}} {1}
+    }
+    \cs_generate_variant:Nn \function___get_only_package:n {V}
+
+    % \function___get_return_packages:(N|n|V) #1
+    %
+    % Leaves the return package list of function #1 into the input stream.
+    %
+    % #1 -> Function variable.
+    %
+    \cs_new:Npn \function___get_return_packages:n #1
+    {
+        \utility___clist_check_number_of_elements:nVn {#1} \c_function___number_of_fields {function}
+        \clist_item:nn {#1} {\c_function___return_package_list_index}
+    }
+    \cs_generate_variant:Nn \function___get_return_packages:n {V}
+    \cs_new:Npn \function___get_return_packages:N #1 { \function___get_return_packages:V #1}
+
+    % \function___get_only_return_package:n #1
+    %
+    % Leaves the only return package of function #1 into the input stream.
+    %
+    % #1 -> Function.
+    %
+    \cs_new:Npn \function___get_only_return_package:n #1
+    {
+        \utility___clist_check_number_of_elements:enn {\function___get_return_packages:n {#1}} {1} {function}
+        \package_list___item:en {\function___get_return_packages:n {#1}} {1}
+    }
+
+% MODIFYING FUNCTION
+
+    % \function___set:(Nn|NV|Nx) #1 #2
+    %
+    % Sets value of function variable #1 to value of function #2.
+    %
+    % #1 -> Function variable.
+    %
+    % #2 -> Function variable.
+    %
+    %%%%%%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%%%%
+    \package_list___new:N \l_function___tmp_package_list        %
+    \package_list___new:N \l_function___tmp_return_package_list %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \function___set:Nn #1 #2
+    {
+        \utility___clist_check_number_of_elements:nVn {#2} \c_function___number_of_fields {function}
+
+        % Use \package_list___set to perform checks on input data from #2.
+        \package_list___set:Nx \l_function___tmp_package_list {\function___get_packages:n {#2}}
+        \package_list___set:Nx \l_function___tmp_return_package_list {\function___get_return_packages:n {#2}}
+
+        \clist_set:Nx #1
+        {
+            {\function___get_name:n {#2}},
+            {\exp_not:V \l_function___tmp_package_list},
+            {\exp_not:V \l_function___tmp_return_package_list}
+        }
+    }
+    \cs_generate_variant:Nn \function___set:Nn {NV, Nx}
+
+    % \function___replace_package_list:(nn|Vn) #1 #2
+    %
+    % Leaves in input stream the function #1 with replaced package list #2.
+    %
+    % #1 -> Function.
+    %
+    % #2 -> Package list representing the sending packages.
+    %
+    \cs_new:Npn \function___replace_package_list:nn #1 #2
+    {
+        \exp_not:e
+        {
+            \function___get_name:n {#1},
+            {\exp_not:n {#2}},
+            {\function___get_return_packages:n {#1}}
+        }
+    }
+    \cs_generate_variant:Nn \function___replace_package_list:nn {Vn}
+
+    % \function___set_package_list:(Nn|NV|Nx) #1 #2
+    %
+    % Sets the function package list of function variable #1 to #2.
+    %
+    % #1 -> Function variable.
+    %
+    % #2 -> Package list representing the sending packages.
+    %
+    \cs_new_protected:Npn \function___set_package_list:Nn #1 #2
+    {
+        \function___set:Nx #1
+        {
+            \function___replace_package_list:Vn #1 {#2}
+        }
+    }
+    \cs_generate_variant:Nn \function___set_package_list:Nn {NV, Nx}
+
+    % \function___set_return_package_list:(Nn|NV|Nx) #1 #2
+    %
+    % Sets the function return package list of function variable #1 to #2.
+    %
+    % #1 -> Function variable.
+    %
+    % #2 -> Package list representing the returning packages.
+    %
+    \cs_new_protected:Npn \function___set_return_package_list:Nn #1 #2
+    {
+        \function___set:Nx #1
+        {
+            \function___get_name:N #1,
+            {\function___get_packages:N #1},
+            {\exp_not:n {#2}}
+        }
+    }
+    \cs_generate_variant:Nn \function___set_return_package_list:Nn {NV, Nx}
+
+% FUNCTION CONDITIONALS
+
+    % \function___if_eq:(nn|nV)[TF] #1 #2
+    %
+    % Checks if function #1 is equal to function #2.
+    %
+    % #1 -> Function.
+    %
+    % #2 -> Function.
+    %
+    \prg_new_eq_conditional:NNn \function___if_eq:nn \tl_if_eq:nn {T, F, TF}
+    \prg_generate_conditional_variant:Nnn \function___if_eq:nn {nV} {T, F, TF}
+
+% FUNCTION LOGGING
+
+    % \function___log:(N|n|x) #1
+    %
+    % Logs the value of function #1.
+    %
+    % #1 -> Function to be logged.
+    %
+    \cs_new_eq:NN \function___log:N \clist_log:N
+    \cs_new_eq:NN \function___log:n \clist_log:n
+    \cs_generate_variant:Nn \function___log:n {x}
+
+% DRAWING FUNCTION
+
+    % \function___draw:(nnnn|nnnx|Vnnx) #1 #2 #3 #4
+    %
+    % Draws function variable #1 in drawing area named #2.
+    % Horizontal alignment #3 is relative to the drawing area #2.
+    % Function will be drawn in color, with return value, only if #4 is \c_true_bool.
+    %
+    % #1 -> Function variable to be drawn.
+    %
+    % #2 -> Name of the EXISTING rectangle where function will be drawn.
+    %
+    % #3 -> Vertical alignment:
+    %           top    -> Middle of function arrow is overlapping with rectangle's top edge.
+    %           center -> Function label, function arrow [and return arrow] are centered in rectangle.
+    %           bottom -> Middle of function/return arrow is overlapping with rectangle's bottom edge.
+    %
+    % #4 -> Comma-separated list containing the colors which will be used for drawing function.
+    %           Color 1   -> Color of the function label.
+    %           Color 2   -> Color of the function arrow.
+    %           [Color 3] -> Color of the return arrow - If empty, return arrow won't be drawn.
+    %
+    %%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%
+    \dim_new:N \l_function___label_height             %
+    \dim_new:N \l_function___required_drawing_height  %
+    \dim_new:N \l_function___available_drawing_height %
+    \dim_new:N \l_function___y_top                    %
+    \dim_new:N \l_function___y_bottom                 %
+    \dim_new:N \l_function___starting_drawing_height  %
+    \tl_new:N \l_function___label_color               %
+    \tl_new:N \l_function___function_arrow_color      %
+    \tl_new:N \l_function___return_arrow_color        %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \function___draw:nnnn #1 #2 #3 #4
+    {
+        % Extract given colors.
+        \int_case:xnF {\clist_count:n {#4}}
+        {
+            {2}
+            {
+                \tl_set:Nx \l_function___label_color          {\clist_item:nn {#4} {1}}
+                \tl_set:Nx \l_function___function_arrow_color {\clist_item:nn {#4} {2}}
+                \tl_clear:N \l_function___return_arrow_color
+            }
+
+            {3}
+            {
+                \tl_set:Nx \l_function___label_color          {\clist_item:nn {#4} {1}}
+                \tl_set:Nx \l_function___function_arrow_color {\clist_item:nn {#4} {2}}
+                \tl_set:Nx \l_function___return_arrow_color   {\clist_item:nn {#4} {3}}
+            }
+        }
+        {
+            \utility___error:nnn {function} {Invalid~number~of~colors~provided~in~argument~"#4"!}
+                                            {This argument must have either 2 or 3 colors in the list!}
+        }
+
+        % Calculate available drawing space.
+        \pgfextracty {\l_function___y_top} {\pgfpointanchor {#2} {north}}
+        \pgfextracty {\l_function___y_bottom} {\pgfpointanchor {#2} {south}}
+        \dim_set:Nn \l_function___available_drawing_height {\l_function___y_top - \l_function___y_bottom}
+
+        % Measure height of function label.
+        \begin {pgfinterruptpicture}
+            \utility___set_to_dimension:nNx {total_height} \l_function___label_height {\function___get_label:n {#1}}
+            \dim_gset_eq:NN \l_function___label_height \l_function___label_height
+        \end {pgfinterruptpicture}
+
+        % Calculate required drawing space.
+        \dim_set:Nn \l_function___required_drawing_height
+        {
+            \l_function___label_height
+            + \c_settings___distance_from_function_label_to_function_arrow
+            + \c_function___maximum_function_arrow_height
+        }
+        \bool_lazy_and:nnT {!\tl_if_empty_p:N \l_function___return_arrow_color}
+                           {!\package_list___if_empty_p:e {\function___get_return_packages:n {#1}}}
+        {
+            \dim_add:Nn \l_function___required_drawing_height
+            {
+                \c_settings___distance_from_function_arrow_to_return_arrow
+                + \c_function___maximum_return_arrow_height
+            }
+        }
+
+        % Calculate starting drawing point(middle of function arrow) and update required drawing space if needed.
+        \str_case_e:nnF {#3}
+        {
+            {top}
+            {
+                \dim_set:Nn \l_function___starting_drawing_height {\l_function___y_top}
+                \dim_sub:Nn \l_function___required_drawing_height
+                {
+                    \l_function___label_height
+                    + \c_settings___distance_from_function_label_to_function_arrow
+                    + \c_function___maximum_function_arrow_height / 2
+                }
+            }
+
+            {center}
+            {
+                \dim_set:Nn \l_function___starting_drawing_height
+                {
+                    \l_function___y_top
+                    - (\l_function___available_drawing_height - \l_function___required_drawing_height) / 2
+                    - \l_function___label_height
+                    - \c_settings___distance_from_function_label_to_function_arrow
+                    - \c_function___maximum_function_arrow_height / 2
+                }
+            }
+
+            {bottom}
+            {
+                \bool_lazy_and:nnTF {!\tl_if_empty_p:N \l_function___return_arrow_color}
+                                    {!\package_list___if_empty_p:e {\function___get_return_packages:n {#1}}}
+                {
+                    \dim_set:Nn \l_function___starting_drawing_height
+                    {
+                        \l_function___y_bottom
+                        + \c_function___maximum_return_arrow_height / 2
+                        + \c_settings___distance_from_function_arrow_to_return_arrow
+                        + \c_function___maximum_function_arrow_height / 2
+                    }
+                    \dim_sub:Nn \l_function___required_drawing_height {\c_function___maximum_return_arrow_height / 2}
+                }
+                {
+                    \dim_set:Nn \l_function___starting_drawing_height {\l_function___y_bottom}
+                    \dim_sub:Nn \l_function___required_drawing_height {\c_function___maximum_function_arrow_height / 2}
+                }
+            }
+        }
+        {
+            \utility___error:nnn {function} {Invalid~vertical~alignment~"#3"!} {Use~"top",~"center"~or~"bottom".}
+        }
+
+        % Check if function can be drawn in specified area.
+        \dim_compare:nNnT {\l_function___required_drawing_height} > {\l_function___available_drawing_height}
+        {
+            \utility___error:nx {function} {Not~enough~space~to~draw~a~function~"\function___get_name:n {#1}"!}
+        }
+
+        % Create starting and ending coordinates for function arrow.
+        \path let \p1 = (#2.west) in coordinate (l_function___begin) at (\x1, \l_function___starting_drawing_height);
+        \path let \p1 = (#2.east) in coordinate (l_function___end)   at (\x1, \l_function___starting_drawing_height);
+
+        % Draw function label.
+        \draw let
+                  \p1 = (l_function___begin),
+                  \p2 = (l_function___end),
+                  \n{x} = {\x1 + (\x2 - \x1) / 2},
+                  \n{y} = {
+                           \y1
+                           + \c_settings___distance_from_function_label_to_function_arrow
+                           + \c_function___maximum_function_arrow_height / 2
+                          }
+              in
+                  node (g_function___function_label) [s_function___function_label]
+                      at (\n{x}, \n{y}) {\function___get_label:n {#1}};
+
+        % Draw function arrow.
+        \draw [s_function___function_arrow] (l_function___begin) -- (l_function___end);
+
+        % Draw packages on function arrow.
+        \package_list___if_empty:eF {\function___get_packages:n {#1}}
+        {
+            \package_list___draw:xnnnn {\function___get_packages:n {#1}}
+                                       {l_function___begin}
+                                       {l_function___end}
+                                       {middle}
+                                       {middle}
+
+            % Draw invisible rectangle around function packages.
+            \node (g_function___function_packages) [inner~sep = 0mm, fit = (g_package_list___drawing_area)] {};
+        }
+
+        % Draw invisible rectangle around function arrow.
+        \draw let
+                  \p1 = (#2.west),
+                  \p2 = (#2.east),
+                  \n{width} = {\x2 - \x1},
+                  \n{height} = {\c_function___maximum_function_arrow_height}
+              in
+                  node (g_function___function_arrow) [
+                                                      inner~sep = 0mm,
+                                                      anchor = west,
+                                                      minimum~width = \n{width},
+                                                      minimum~height = \n{height}
+                                                     ]
+                      at (l_function___begin) {};
+
+        % Draw return packages if needed.
+        \bool_lazy_and:nnT {!\tl_if_empty_p:N \l_function___return_arrow_color}
+                           {!\package_list___if_empty_p:e {\function___get_return_packages:n {#1}}}
+        {
+            % Create starting and ending coordinates for return arrow.
+            \path let
+                      \p1 = (#2.west),
+                      \n{x} = {\x1},
+                      \n{y} = {
+                               \l_function___starting_drawing_height
+                               - \c_function___maximum_function_arrow_height / 2
+                               - \c_settings___distance_from_function_arrow_to_return_arrow
+                               - \c_function___maximum_return_arrow_height / 2
+                              }
+                  in
+                      coordinate (l_function___begin)
+                          at (\n{x}, \n{y});
+            \path let \p1 = (#2.east), \p2 = (l_function___begin) in coordinate (l_function___end) at (\x1, \y2);
+
+            % Draw return arrow.
+            \draw [s_function___return_arrow] (l_function___end) -- (l_function___begin);
+
+            % Draw return packages on return arrow.
+            \package_list___draw:xnnnn {\function___get_return_packages:n {#1}}
+                                       {l_function___begin}
+                                       {l_function___end}
+                                       {middle}
+                                       {middle}
+
+            % Draw invisible rectangle around return packages.
+            \node (g_function___return_packages) [inner~sep = 0mm, fit = (g_package_list___drawing_area)] {};
+
+            % Draw invisible rectangle around return arrow.
+            \draw let
+                      \p1 = (#2.west),
+                      \p2 = (#2.east),
+                      \n{width} = {\x2 - \x1},
+                      \n{height} = {\c_function___maximum_return_arrow_height}
+                  in
+                      node (g_function___return_arrow) [
+                                                        inner~sep = 0mm,
+                                                        anchor = west,
+                                                        minimum~width = \n{width},
+                                                        minimum~height = \n{height}
+                                                       ]
+                          at (l_function___begin) {};
+        }
+    }
+    \cs_generate_variant:Nn \function___draw:nnnn {nnnx, Vnnx, xnnx}
+
+\ExplSyntaxOff

@@ -1,0 +1,50 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file contains definitions of colors that are used in the project.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {colors}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {xcolor}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% COLORS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Define black and white.
+\definecolor {BLACK} {RGB} {  0,   0,   0}
+\definecolor {WHITE} {RGB} {255, 255, 255}
+
+% Define known colors.
+\definecolor {X11_BLUE}         {RGB} {  0,   0, 255}
+\definecolor {PERU_BROWN}       {RGB} {205, 133,  63}
+\definecolor {KHAKI_BROWN}      {RGB} {195, 176, 145}
+\definecolor {REDWOOD_RED}      {RGB} {164,  90,  82}
+\definecolor {CARROT_ORANGE}    {RGB} {237, 145,  33}
+\definecolor {CANNARY_YELLOW}   {RGB} {255, 255, 153}
+\definecolor {SAND_MOTIF_BROW}  {RGB} {221, 198, 170}
+\definecolor {PANTONE_MAGENTA}  {RGB} {208,  65, 126}
+\definecolor {BATTLESHIP_GRAY}  {RGB} {132, 132, 130}
+\definecolor {MALACHITE_GREEN}  {RGB} { 11, 218,  81}
+\definecolor {ELECTRIC_PURPLE}  {RGB} {191,   0, 255}
+\definecolor {GOLDENROD_YELLOW} {RGB} {218, 165,  32}
+
+% Define custom colors
+\definecolor {BLUE}   {RGB} { 52, 152, 219}
+\definecolor {GREEN}  {RGB} { 26, 188, 156}
+\definecolor {PURPLE} {RGB} {110, 110, 200}
+
+% Define variants of custom colors by mixing them with black or white.
+\colorlet {LIGHT_BLUE}     {BLUE!50!WHITE}
+\colorlet {DARK_BLUE}      {BLUE!70!BLACK}
+\colorlet {VERY_DARK_BLUE} {BLUE!50!BLACK}
+
+\colorlet {LIGHT_GREEN}     {GREEN!50!WHITE}
+\colorlet {DARK_GREEN}      {GREEN!70!BLACK}
+\colorlet {VERY_DARK_GREEN} {GREEN!50!BLACK}
+
+\colorlet {LIGHT_PURPLE}     {PURPLE!50!WHITE}
+\colorlet {DARK_PURPLE}      {PURPLE!70!BLACK}
+\colorlet {VERY_DARK_PURPLE} {PURPLE!50!BLACK}

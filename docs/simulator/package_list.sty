@@ -1,0 +1,480 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file defines "package_list" structure and methods that interact with it.
+% For details about "package" structure, see "package.sty" file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {package_list}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {tikz}
+\RequirePackage {expl3}
+\RequirePackage {utility}
+\RequirePackage {package}
+\RequirePackage {settings}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIKZ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    % s_package_list___unrotated_label
+    %
+    % Style for node label which will be wrote in horizontal direction, regardless of node rotation.
+    %
+    % #1 -> Text of the label.
+    %
+    \use:x {\exp_not:n {\tikzstyle {s_package_list___unrotated_label}} = [label={center \c_colon_str \exp_not:n {#1}}]}
+
+    % s_package_list___invisible_rectangle
+    %
+    % Style for invisible rectangle used for behind-the-scene drawing.
+    %
+    \tikzstyle {s_package_list___invisible_rectangle} = [
+                                                         shape = rectangle,
+                                                         inner~sep = 0mm,
+                                                         outer~sep = 0mm,
+                                                         draw = none,
+                                                         fill = none
+                                                        ]
+
+    % s_package_list___invisible_package
+    %
+    % Style for invisible packages used for easier positioning of visible packages.
+    %
+    \tikzstyle {s_package_list___invisible_package} = [
+                                                       s_package_list___invisible_rectangle,
+                                                       minimum~size = \c_settings___package_size,
+                                                      ]
+
+    % s_package_list___package
+    %
+    % Style for drawing packages.
+    %
+    % #1 -> Name of the package variable which will be drawn.
+    %
+    \tikzstyle {s_package_list___package} = [
+                                             shape = rectangle,
+                                             rounded~corners,
+                                             inner~sep = 0mm,
+                                             outer~sep = 0mm,
+                                             minimum~size = \c_settings___package_size,
+                                             draw = none,
+                                             fill = \package___get_color:N #1,
+                                             s_package_list___unrotated_label = \package___get_label:N #1
+                                            ]
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ERROR CHECKS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    \utility___enable_error_checks_in_module:n {package_list}
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+% PACKAGE LIST CONSTRUCTION
+
+    % \package_list___new:N #1
+    %
+    % Creates a new empty package list variable.
+    %
+    % #1 -> Name of the new package list variable.
+    %
+    \cs_new_eq:NN \package_list___new:N \clist_clear_new:N
+
+    % \package_list___const:(Nn|Nx) #1 #2
+    %
+    % Creates and initializes a new constant package list variable.
+    %
+    % #1 -> Name of the new constant package list variable.
+    %
+    % #2 -> Value to be set to new constant package list variable.
+    %
+    %%%%%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%%
+    \package_list___new:N \l_package_list___tmp_package_list %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \package_list___const:Nn #1 #2
+    {
+        \package_list___set:Nn \l_package_list___tmp_package_list {#2}
+        \clist_const:NV #1 \l_package_list___tmp_package_list
+    }
+    \cs_generate_variant:Nn \package_list___const:Nn {Nx}
+
+% GETTING INFO FROM PACKAGE LIST
+
+    % \package_list___count:(N|n) #1
+    %
+    % Leaves the number of packages in package list #1 to the input stream.
+    %
+    % #1 -> Package list.
+    %
+    \cs_new_eq:NN \package_list___count:N \clist_count:N
+    \cs_new_eq:NN \package_list___count:n \clist_count:n
+
+    % \package_list___item:(Nn|nn|en) #1 #2
+    %
+    % Leaves the package at index #2 in package list #1 to the input stream.
+    %
+    % #1 -> Package list.
+    %
+    % #2 -> Integer expression which will be evaluated to index.
+    %
+    \cs_new_eq:NN \package_list___item:Nn \clist_item:Nn
+    \cs_new_eq:NN \package_list___item:nn \clist_item:nn
+    \cs_generate_variant:Nn \package_list___item:nn {en}
+
+% MODIFYING PACKAGE LIST
+
+    % \package_list___clear:N #1
+    %
+    % Clears content of the package list variable #1.
+    %
+    % #1 -> Name of the package list variable.
+    %
+    \cs_new_eq:NN \package_list___clear:N \clist_clear:N
+
+    % \package_list___add:(Nn|Nx) #1 #2
+    %
+    % Appends package #2 to the package list variable #1.
+    %
+    % #1 -> Package list variable.
+    %
+    % #2 -> Package which will be added to package list #1.
+    %
+    %%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%
+    \package___new:N \l_package_list___tmp_package %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \package_list___add:Nn #1 #2
+    {
+        % Use \package___set to perform checks on input data from #2.
+        \package___set:Nn \l_package_list___tmp_package {#2}
+        \clist_put_right:Nx #1 {{\exp_not:V \l_package_list___tmp_package}}
+    }
+    \cs_generate_variant:Nn \package_list___add:Nn {Nx}
+
+    % \package_list___set:(Nn|NV|Nx) #1 #2
+    %
+    % Sets package list variable #1 to the package list #2.
+    %
+    % #1 -> Package list variable.
+    %
+    % #2 -> Package list which will be copied to package list variable #1.
+    %
+    \cs_new_protected:Npn \package_list___set:Nn #1 #2
+    {
+        \package_list___clear:N #1
+        \clist_map_inline:nn {#2}
+        {
+            \package_list___add:Nn #1 {##1}
+        }
+    }
+    \cs_generate_variant:Nn \package_list___set:Nn {NV, Nx}
+
+    % \package_list___set_item:Nnn #1 #2 #3
+    %
+    % Replaces package with index #2 in package list variable #1 with package #3.
+    %
+    % #1 -> Package list variable.
+    %
+    % #2 -> Integer expression which will be evaluated to index of the package in pakcage list #1.
+    %
+    % #3 -> New package to be set in package list #1 over element at index #2.
+    %
+    %%%%%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%%%%
+    \int_new:N \l_package_list___counter                       %
+    % \package_list___new:N \l_package_list___tmp_package_list %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \package_list___set_item:Nnn #1 #2 #3
+    {
+        \utility___clist_check_if_element_exists:Vnn #1 {#2} {package_list}
+
+        \int_zero:N \l_package_list___counter
+        \package_list___clear:N \l_package_list___tmp_package_list
+        \package_list___map_inline:Nn #1
+        {
+            \int_incr:N \l_package_list___counter
+            \int_compare:nNnTF {#2} = {\l_package_list___counter}
+            {
+                \package_list___add:Nn \l_package_list___tmp_package_list {#3}
+            }
+            {
+                \package_list___add:Nn \l_package_list___tmp_package_list {##1}
+            }
+        }
+        \package_list___set:NV #1 \l_package_list___tmp_package_list
+    }
+
+    % \package_list___reverse:(n|V) #1
+    %
+    % Reverts the order of packages in package list #1 and leaves them in the input stream.
+    %
+    % #1 -> Package list.
+    %
+    \cs_new_eq:NN \package_list___reverse:n \clist_reverse:n
+    \cs_generate_variant:Nn \package_list___reverse:n {V}
+
+% ITERATING OVER PACKAGE LIST
+
+    % \package_list___map_inline:(Nn|nn|xn) #1 #2
+    %
+    % Applies inline function #2 to each package in package list #1.
+    % Current package is accessible by "#1" inside inline function #2.
+    %
+    % #1 -> Package list.
+    %
+    % #2 -> Inline function to be applied to each package in package list #1.
+    %
+    \cs_new_eq:NN \package_list___map_inline:Nn \clist_map_inline:Nn
+    \cs_new_eq:NN \package_list___map_inline:nn \clist_map_inline:nn
+    \cs_generate_variant:Nn \package_list___map_inline:nn {xn}
+
+    % \package_list___map_break:(|n) #1
+    %
+    % Break out of most inner "map" function and executes #1 code afterwards.
+    % Note that since this function is just an alias for \clist_map_break, break will happen for any clist_map function.
+    %
+    % #1 -> Code to be executed after break is done.
+    %
+    \cs_new_eq:NN \package_list___map_break: \clist_map_break:
+    \cs_new_eq:NN \package_list___map_break:n \clist_map_break:n
+
+% PACKAGE LIST CONDITIONALS
+
+    % \package_list___if_empty:(N|n|e)[pTF] #1
+    %
+    % Checks if package list variable #1 is empty.
+    %
+    % #1 -> Package list variable.
+    %
+    \prg_new_eq_conditional:NNn \package_list___if_empty:N \clist_if_empty:N {p, T, F, TF}
+    \prg_new_eq_conditional:NNn \package_list___if_empty:n \clist_if_empty:n {p, T, F, TF}
+    \prg_generate_conditional_variant:Nnn \package_list___if_empty:n {e} {p, T, F, TF}
+
+    % \package_list___if_in:(nn|Vn|nV|VV)[TF] #1 #2
+    %
+    % Checks if package #2 is in package list #1.
+    %
+    % #1 -> Package list where package #2 will be searched for.
+    %
+    % #2 -> Package to be searched for.
+    %
+    \prg_new_eq_conditional:NNn \package_list___if_in:nn \clist_if_in:nn {T, F, TF}
+    \prg_generate_conditional_variant:Nnn \package_list___if_in:nn {Vn, nV, VV} {T, F, TF}
+
+% PACKAGE LIST LOGGING
+
+    % \package_list___log:(N|n|x) #1
+    %
+    % Logs the value of package list #1.
+    %
+    % #1 -> Package list to be logged.
+    %
+    \cs_new_eq:NN \package_list___log:N \clist_log:N
+    \cs_new_eq:NN \package_list___log:n \clist_log:n
+    \cs_generate_variant:Nn \package_list___log:n {x}
+
+% READING/WRITING PACKAGE LIST FROM/TO I/O STREAM
+
+    % \package_list___read_from_stream:NN #1 #2
+    %
+    % Reads one line of input stream #2 and stores it in package list #1.
+    %
+    % #1 -> Package list variable to be set with read content.
+    %
+    % #2 -> OPENED input stream from which package list will be leaded.
+    %
+    \cs_new_protected:Npn \package_list___read_from_stream:NN #1 #2
+    {
+        \clist_clear:N #1
+        \utility___execute_with_changed_character_catcode:Nnn _ {11}
+        {
+            \ior_map_inline:Nn #2
+            {
+                \tl_if_eq:nnF {##1} {\par}
+                {
+                    \package_list___set:Nn #1 {##1}
+                }
+                \ior_map_break:
+            }
+        }
+    }
+
+    % \package_list___write_to_stream:(nN|VN) #1 #2
+    %
+    % Writes the content of package list #1 to output stream #2.
+    %
+    % #1 -> Package list to be written.
+    %
+    % #2 -> OPENED output stream where package list #1 will be written.
+    %
+    \cs_new_protected:Npn \package_list___write_to_stream:nN #1 #2
+    {
+        \iow_now:Nn #2 {#1}
+    }
+    \cs_generate_variant:Nn \package_list___write_to_stream:nN {VN}
+
+% DRAWING PACKAGE LIST
+
+    % \package_list___draw:(nnnnn|Vnnnn|xnnnn) #1 #2 #3 #4 #5
+    %
+    % Draws packages from package list #1 relative to line #2 --- #3.
+    % Relative positioning is defined with horizontal alignment #4 and vertical alignment #5.
+    %
+    % #1 -> Package list to be drawn.
+    %
+    % #2 -> Coordinate for beginning of the referent line.
+    %
+    % #3 -> Coordinate for end of the referent line.
+    %
+    % #4 -> Horizontal alignment: begin or middle
+    %
+    % #5 -> Vertical alignment: below or middle
+    %
+    %%%%%%%%%%% Local Variables %%%%%%%%%%%
+    \dim_new:N \l_package_list___x_begin  %
+    \dim_new:N \l_package_list___y_begin  %
+    \dim_new:N \l_package_list___x_end    %
+    \dim_new:N \l_package_list___y_end    %
+    \dim_new:N \l_package_list___distance %
+    \dim_new:N \l_package_list___angle    %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \package_list___draw:nnnnn #1 #2 #3 #4 #5
+    {
+        % Rename provided points to allow user to pass points of the exising nodes.
+        \coordinate (l_package_list___begin) at (#2);
+        \coordinate (l_package_list___end)   at (#3);
+
+        % Extract x and y from #2 and #3 points.
+        \pgfextractx {\l_package_list___x_begin} {\pgfpointanchor {l_package_list___begin} {center}}
+        \pgfextracty {\l_package_list___y_begin} {\pgfpointanchor {l_package_list___begin} {center}}
+        \pgfextractx {\l_package_list___x_end}   {\pgfpointanchor {l_package_list___end}   {center}}
+        \pgfextracty {\l_package_list___y_end}   {\pgfpointanchor {l_package_list___end}   {center}}
+
+        % Calculate distance between #2 and #3 points.
+        \dim_set:Nn \l_package_list___distance
+        {
+            \fp_to_dim:n
+            {
+                sqrt(
+                     (\l_package_list___x_end - \l_package_list___x_begin) ^ 2
+                     + (\l_package_list___y_end - \l_package_list___y_begin) ^ 2
+                    )
+            }
+        }
+
+        % Calculate angle between line #2 --- #3 and x-axis.
+        \dim_set:Nn \l_package_list___angle
+        {
+            \fp_to_dim:n
+            {
+                atand(
+                      \l_package_list___y_end - \l_package_list___y_begin,
+                      \l_package_list___x_end - \l_package_list___x_begin,
+                     )
+            }
+        }
+
+        % Draw invisible package as start of drawing sequence.
+        % Position it on the line #2 --- #3 and honor the requested horizontal alignment.
+        \str_case:nn {#4}
+        {
+            {begin}
+            {
+                \node (l_package_list___last_drawn_package) [
+                                                             s_package_list___invisible_package,
+                                                             anchor = east,
+                                                             rotate = \l_package_list___angle
+                                                            ]
+                    at (l_package_list___begin) {};
+            }
+
+            {middle}
+            {
+                \path let
+                          \n{fraction} = {
+                                          (
+                                           \l_package_list___distance
+                                           - \c_settings___package_size * \package_list___count:n {#1}
+                                          ) / 2 / \l_package_list___distance
+                                         }
+                      in
+                          (l_package_list___begin) --
+                              node (l_package_list___last_drawn_package) [
+                                                                          s_package_list___invisible_package,
+                                                                          anchor = east,
+                                                                          rotate = \l_package_list___angle,
+                                                                          pos = \n{fraction}
+                                                                         ] {}
+                          (l_package_list___end);
+            }
+
+            {end}
+            {
+                \path let
+                          \n{fraction} = {
+                                          (
+                                           \l_package_list___distance
+                                           - \c_settings___package_size * \package_list___count:n {#1}
+                                          ) / \l_package_list___distance
+                                         }
+                      in
+                          (l_package_list___begin) --
+                              node (l_package_list___last_drawn_package) [
+                                                                          s_package_list___invisible_package,
+                                                                          anchor = east,
+                                                                          rotate = \l_package_list___angle,
+                                                                          pos = \n{fraction}
+                                                                         ] {}
+                          (l_package_list___end);
+            }
+        }
+
+        % Draw another invisible package to honor the requested vertical alignment.
+        \str_case:nn {#5}
+        {
+            {below}
+            {
+                \node (l_package_list___last_drawn_package) [
+                                                             s_package_list___invisible_package,
+                                                             rotate = \l_package_list___angle
+                                                            ]
+                    at (l_package_list___last_drawn_package.south) {};
+            }
+
+            {middle} {} % Nothing to do since the first invisible package already has the correct horizontal alignment.
+        }
+
+        % Draw invisible rectangle which will contain all drawn packages from the list.
+        \node (g_package_list___drawing_area) [
+                                               s_package_list___invisible_rectangle,
+                                               anchor = west,
+                                               minimum~width = \c_settings___package_size * \package_list___count:n {#1},
+                                               minimum~height = \c_settings___package_size,
+                                               rotate = \l_package_list___angle
+                                              ]
+            at (l_package_list___last_drawn_package.east) {};
+
+        % Sequentially draw packages from package list #1 while honoring requested alignments.
+        \node foreach \package in {#1}
+            (l_package_list___last_drawn_package) [
+                                                   s_package_list___package = \package,
+                                                   anchor = west,
+                                                   rotate = \l_package_list___angle
+                                                  ]
+            at (l_package_list___last_drawn_package.east) {};
+    }
+    \cs_generate_variant:Nn \package_list___draw:nnnnn {Vnnnn, xnnnn}
+
+\ExplSyntaxOff
