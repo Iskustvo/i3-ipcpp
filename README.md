@@ -25,9 +25,9 @@ C++ library that implements the [i3 IPC protocol](https://i3wm.org/docs/ipc.html
   * [Namespaces](#namespaces)
 * [Internals](#internals)
   * [Overview](#overview)
+  * [Simulation](#simulation)
   * [Code structure](#code-structure)
 * [Compatibility](#compatibility)
-* [Known issues](#known-issues)
 * [TODO](#todo)
 * [License](#license)
 
@@ -79,7 +79,6 @@ make                  # Build library in configured way.
 
 * Maximize the currently focused window.
 
-
 *example.cpp*
 
 ```cpp
@@ -97,6 +96,7 @@ int main()
     return 0;
 }
 ```
+
 ----------
 
 ##### Example 2 #####
@@ -115,49 +115,41 @@ int main()
 #include <cstdint>
 #include <iostream>
 #include <optional>
-#include <algorithm>
 
 // Find the focused node in i3's tree of containers.
 std::optional<i3_containers::node> find_focused_node(const i3_containers::node& a_root)
 {
-    // If the current node is focused, we finished the search.
+    // If current node is focused, the search is finished.
     if (a_root.is_focused)
     {
         return a_root;
     }
 
-    // i3 provides a list of child nodes that we need to traverse in order to find the focused window.
-    const std::vector<std::uint64_t>& traverse_IDs = a_root.focus;
-    
-    // Search all tilling child nodes.
+    // If current node doesn't have the focus list order, it means that none of its children nodes are focused.
+    if (a_root.focus.empty())
+    {
+        return std::nullopt;
+    }
+
+    // Recursively traverse the first child(either tilling or floating) node in the focus list order.
+    const std::uint64_t ID_of_focused_child = a_root.focus.front();
     for (const auto& node : a_root.nodes)
     {
-        // If current child node should be traversed, traverse it recursively.
-        if (std::find(traverse_IDs.cbegin(), traverse_IDs.cend(), node.id) != traverse_IDs.cend())
+        if (node.id == ID_of_focused_child)
         {
-            const std::optional<i3_containers::node>& found_node = find_focused_node(node);
-            if (found_node)
-            {
-                return found_node;
-            }
+            return find_focused_node(node);
         }
     }
-
-    // Search all floating child nodes.
     for (const auto& node : a_root.floating_nodes)
     {
-        // If current floating child node should be traversed, traverse it recursively.
-        if (std::find(traverse_IDs.cbegin(), traverse_IDs.cend(), node.id) != traverse_IDs.cend())
+        if (node.id == ID_of_focused_child)
         {
-            const std::optional<i3_containers::node>& found_node = find_focused_node(node);
-            if (found_node)
-            {
-                return found_node;
-            }
+            return find_focused_node(node);
         }
     }
 
-    // We couldn't find focused window.
+    // This should never happen!!!
+    // If node has the focus list order, it should also have the children nodes with IDs from the focus list order.
     return std::nullopt;
 }
 
@@ -167,13 +159,13 @@ int main()
     i3_ipc i3;
 
     // Get internal node tree from i3.
-    const i3_containers::node& tree = i3.get_tree();
+    const i3_containers::node tree = i3.get_tree();
 
     // Try to find the focused node in i3's tree of containers.
-    const std::optional<i3_containers::node>& focused_node = find_focused_node(tree);
+    const std::optional<i3_containers::node> focused_node = find_focused_node(tree);
 
     // Check if focused node is found.
-    if(!focused_node)
+    if (!focused_node)
     {
         std::cout << "Couldn't find focused node!" << std::endl;
         return 0;
@@ -184,6 +176,7 @@ int main()
     return 0;
 }
 ```
+
 ----------
 
 ##### Example 3 #####
@@ -207,7 +200,7 @@ int main()
 void window_callback(const i3_containers::window_event& a_window_event)
 {
     // Only when new window is created, write it's title.
-    if(a_window_event.change == i3_containers::window_change::create)
+    if (a_window_event.change == i3_containers::window_change::create)
     {
         // i3 gave us container which will contain this new window.
         // Its name should be same as the title of the window.
@@ -228,7 +221,7 @@ int main()
 
     // Wait and handle all subscribed events.
     // In our case, we only subscribed to window event.
-    while(true)
+    while (true)
     {
         i3.handle_next_event();
     }
@@ -239,7 +232,7 @@ int main()
 
 #### More examples ####
 
-This project contains several examples in the [examples](https://github.com/Iskustvo/i3-ipcpp/blob/master/examples) directory.  
+This project contains several examples in the [examples](examples) directory.  
 Most examples are simple and just show you how to use the library to get something done.  
 There are few of them that are focusing on proper exception handling with this library, be sure not to miss them.
 
@@ -289,12 +282,12 @@ If you did everything right, you should be able to run `example`.
 
 ### Headers ###
 
-* [i3_ipc.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/include/i3_ipc.hpp): Defines [i3_ipc](#i3_ipc) class.
-* [i3_containers.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/include/i3_containers.hpp): Defines [i3_containers](#i3_containers) namespace.
-* [i3_ipc_exception.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/include/i3_ipc_exception.hpp): Defines [i3_ipc_exception](#i3_ipc_exception) class.
-* [i3_ipc_unsupported.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/include/i3_ipc_unsupported.hpp): Defines [i3_ipc_unsupported](#i3_ipc_unsupported) class.
-* [i3_ipc_bad_message.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/include/i3_ipc_bad_message.hpp): Defines [i3_ipc_bad_message](#i3_ipc_bad_message) class.
-* [i3_ipc_invalid_argument.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/include/i3_ipc_invalid_argument.hpp): Defines [i3_ipc_invalid_argument](#i3_ipc_invalid_argument) class.
+* [i3_ipc.hpp](include/i3_ipc.hpp): Defines [i3_ipc](#i3_ipc) class.
+* [i3_containers.hpp](include/i3_containers.hpp): Defines [i3_containers](#i3_containers) namespace.
+* [i3_ipc_exception.hpp](include/i3_ipc_exception.hpp): Defines [i3_ipc_exception](#i3_ipc_exception) class.
+* [i3_ipc_unsupported.hpp](include/i3_ipc_unsupported.hpp): Defines [i3_ipc_unsupported](#i3_ipc_unsupported) class.
+* [i3_ipc_bad_message.hpp](include/i3_ipc_bad_message.hpp): Defines [i3_ipc_bad_message](#i3_ipc_bad_message) class.
+* [i3_ipc_invalid_argument.hpp](include/i3_ipc_invalid_argument.hpp): Defines [i3_ipc_invalid_argument](#i3_ipc_invalid_argument) class.
 
 ### Classes ###
 
@@ -322,51 +315,109 @@ If you did everything right, you should be able to run `example`.
 
 ### Overview ###
 
-This picture represents the simplified overview of how library is working internally.
+Best way to explain the internal work of the **i3-ipc++** library is on simple example.
 
-![i3-ipc++ oveview](docs/overview/overview.png)
+```cpp
+// Include the i3_ipc class which does all IPC communication with i3 for you.
+#include "i3_ipc.hpp"
+
+// Include containers to store data from i3.
+#include "i3_containers.hpp"
+
+int main()
+{
+    // Create IPC object and connect it to running i3 process.
+    i3_ipc i3;
+
+    // Subscribe to i3's window event with callback function c1.
+    auto c1 = [](const i3_containers::window_event& e) {(void)e;};
+    i3.on_window_event(c1); // #1
+
+    // Window event happened now.
+
+    // Request some data from i3.
+    auto node_tree = i3.get_tree(); // #2
+
+    // Another window event happened now.
+
+    // Subscribe to i3's window event with NEW callback function c2.
+    auto c2 = [](const i3_containers::window_event& e) {(void)e;};
+    i3.on_window_event(c2); // #3
+
+    // Handle received event.
+    i3.handle_next_event(); // #4
+
+    // Handle received event.
+    i3.handle_next_event(); // #5
+
+    // Another window event happened now.
+
+    // Handle received event.
+    i3.handle_next_event(); // #6
+
+    return 0;
+}
+```
+
+* #1
+  ![example_step_0](docs/images/example_step_0.png)
+  1&deg; - `i3_ipc` will send subscription request for window events to **i3**.  
+  2&deg; - `i3_ipc` will read and parse **i3**'s response to know if subscription succeeded.  
+  3&deg; - If subscription succeeded, `i3_ipc` will store given callback(**c1**) in `m_event_queue`.  
+  **Note that callback c1 is placed in `m_event_queue` and not directly in `m_callbacks`.**  
+  By doing it this way, `i3_ipc` is able to respect the chronological order of events and set callbacks.
+
+* #2
+  ![example_step_1](docs/images/example_step_1.png)
+  1&deg; - `i3_ipc` will send request for **i3**'s internal node structure to **i3**.  
+  2&deg; - `i3_ipc` will read and parse **i3**'s responses until it gets requested data or status that it failed.  
+  3&deg; - Since window event happened, `i3_ipc` will parse it and place it in the `m_event_queue` for later handling.  
+  4&deg; - Now that `i3_ipc` successfully received and parsed requested data, it will return it to the caller.  
+
+* #3
+  ![example_step_2](docs/images/example_step_2.png)
+  1&deg; - `i3_ipc` will send subscription request for window events to **i3**.  
+  2&deg; - `i3_ipc` will read and parse **i3**'s responses until it gets response for sent subscription.  
+  3&deg; - Since window event happened, `i3_ipc` will parse it and place it in the `m_event_queue` for later handling.  
+  4&deg; - If subscription succeeded, `i3_ipc` will store given callback(**c2**) in `m_event_queue`.  
+  **Note that subscription request is again sent to i3 even if we are already subscribed to that event.**  
+  By requesting it again, `i3_ipc` is able to respect the chronological order of events and set callbacks.  
+
+* #4
+  ![example_step_3](docs/images/example_step_3.png)
+  `i3_ipc` will go through `m_event_queue` until it handles **first event**. If queue has no events, it will read one from socket.  
+  1&deg; - First element in `m_event_queue` is callback(**c1**), therefore, `i3_ipc` will set it in `m_callbacks` and continue.  
+  2&deg; - Next element in `m_event_queue` is window event and `i3_ipc` will call appropriate callback(**c1**) with it.  
+
+* #5
+  ![example_step_4](docs/images/example_step_4.png)
+  `i3_ipc` will go through `m_event_queue` until it handles **first event**. If queue has no events, it will read one from socket.  
+  1&deg; - First element in `m_event_queue` is window event and `i3_ipc` will call appropriate callback(**c1**) with it.  
+
+* #6
+  ![example_step_5](docs/images/example_step_5.png)
+  `i3_ipc` will go through `m_event_queue` until it handles **first event**. If queue has no events, it will read one from socket.  
+  1&deg; - First element in `m_event_queue` is callback(**c2**), therefore, `i3_ipc` will set it in `m_callbacks` and continue.  
+  2&deg; - Since there are no more elements in `m_event_queue`, `i3_ipc` will wait and read event directly from socket.  
+  3&deg; - Once the event is read and parsed, `i3_ipc` will call appropriate callback(**c2**) with it.
 
 ----------
 
-* **i3_ipc** contains two sockets connected to **i3**.
-  * One for synchronous requests - *m_request_socket*
-  * One for asynchronous events - *m_event_socket*
+**Note that if callbacks were instantly set to `m_callbacks`, all events in example would be executed with callback c2.**
 
 ----------
 
-* For synchronous requests(left half of the [picture](#overview)), the case is pretty simple:
-  * User sends a request to **i3_ipc** with one of the member functions implemented in [i3_ipc-requests.cpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/src/i3_ipc/i3_ipc-requests.cpp).
-  * **i3_ipc** writes the requst in correct format to **i3**'s socket and waits to read **i3**'s response.
-  * Once **i3_ipc** reads the response, it uses **i3_json_parser** class to extract all data from JSON format.
-  * The extracted structure containing the response is returned to the user.
+### Simulation ###
 
-----------
-
-* For asynchronous events(right half of the [picture](#overview)), the case is a bit more complicated:
-  * User sends a callback function to **i3_ipc** in order for it to be executed on specific **i3** event.  
-    User does so by using one of the public member functions implemented in [i3_ipc-events.cpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/src/i3_ipc/i3_ipc-events.cpp).
-
-  * **i3_ipc** sends subscription request to **i3** and parses events from *m_event_socket* until it reaches response.  
-    All events parsed(using the **i3_json_parser**) this way are pushed to *m_event_queue* for later handling.  
-    Afterwards, callback sent by the user is also pushed to *m_event_queue* to be used at appropriate time.
-
-  * From this point, **i3** will write info about subscribed event to *m_event_socket*, whenever event happens.
-
-  * User will handle events with **i3_ipc::handle_next_event()** member function.  
-    Events will be handled from *m_event_queue* first, and when empty, from *m_event_socket* directly.  
-    If you were careful, you should've noticed that *m_event_queue* has 2 different types of events:
-    * Callback functions that should be internally stored for execution on events.
-    * Parsed data from real **i3** events that will be passed to stored callbacks.  
-
-    **i3_ipc::handle_next_event()** will internally store callbacks and end once the **real** event is handled.
+All images from [overview](#overview) section were generated with [LaTeX simulator](docs/simulator).  
+If something is still unclear regarding general overview, you can always [simulate](docs/simulator#define-the-scenario-which-you-want-to-simulate) your specific scenario!
 
 ### Code structure ###
 
     i3-ipc++
-    ├── examples                            // Source code for examples.
     ├── include                             // Include headers representing the public API.
     └── src
-        ├── exceptions                      // Source code of exception classes.
+        ├── exceptions                      // Source code for exception classes.
         ├── i3_ipc
         │   ├── i3_ipc-general.cpp          // Implements general member functions of i3_ipc class.
         │   ├── i3_ipc-requests.cpp         // Implements member functions of i3_ipc class used for requests.
@@ -382,18 +433,13 @@ This picture represents the simplified overview of how library is working intern
 
 ## Compatibility ##
 
-At the moment, **i3-ipc++** supports **i3** version `4.16`.
+At the moment, **i3-ipc++** supports **i3** version `4.17`.
 
 If you have older version of **i3**, there is a chance that **i3-ipc++** won't compile.  
 This will most likely happen because **i3-ipc++** is missing some defines from **i3**'s [ipc.h](https://github.com/i3/i3/blob/next/include/i3/ipc.h).  
 There are few ways to solve this:
 * Get later version of **i3** which has those defines.
-* Replace missing defines in [i3_message.hpp](https://github.com/Iskustvo/i3-ipcpp/blob/master/src/i3_message.hpp) with `-1` and of course, don't use requests/events for them.
-
-
-## Known issues ##
-
-* Sending *restart* or *exit* through **i3_ipc::execute_commands** will always throw([#3624](https://github.com/i3/i3/pull/3624), [#3565](https://github.com/i3/i3/issues/3565)).
+* Replace missing defines in [i3_message.hpp](src/i3_message.hpp) with `-1` and of course, don't use requests/events for them.
 
 ## TODO ##
 
@@ -403,14 +449,14 @@ There are few ways to solve this:
 
 ![GPL v3 logo](https://www.gnu.org/graphics/gplv3-with-text-136x68.png)
 
-This library is available under the [GNU GPL](https://www.gnu.org/licenses/gpl.html) version 3 or later. See LICENSE.GPL for details.
+This library is available under the [GNU GPL](https://www.gnu.org/licenses/gpl.html) version 3 or later. See [LICENSE.GPL](LICENSE.GPL) for details.
 
 Copyright (C) 2019, Ivan Balević. All rights reserved.
 
----
+----------
 
 This software uses the following external libraries:
 
 * [RapidJSON](https://github.com/Tencent/rapidjson/)
   * Copyright (C) 2015 THL A29 Limited, a Tencent company, and Milo Yip. All rights reserved.
-  * Licensed under the MIT license. See LICENSE.MIT for details.
+  * Licensed under the MIT license. See [LICENSE.MIT](LICENSE.MIT) for details.
