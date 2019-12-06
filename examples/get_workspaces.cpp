@@ -8,6 +8,7 @@
 #include <vector>
 #include <optional>
 #include <iostream>
+#include <exception>
 
 int main()
 {
@@ -22,9 +23,7 @@ int main()
         return 1;
     }
 
-    // Allocate space for containers.
     std::vector<i3_containers::workspace> workspaces;
-
     try
     {
         // Create IPC object and connect it to running i3 process.

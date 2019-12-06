@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_exception.cpp
+ * \file    i3_ipc_exception.cpp
  *
- * Implements member functions of "i3_ipc_exception" class.
+ * \brief   Implements member functions of "i3_ipc_exception" class.
  */
 
 // Library headers.

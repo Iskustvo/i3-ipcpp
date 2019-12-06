@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_exception.hpp
+ * \file    i3_ipc_exception.hpp
  *
- * Defines "i3_ipc_exception" class used for throwing errors from "i3-ipc++" library.
+ * \brief   Defines "i3_ipc_exception" class used for throwing all errors from "i3-ipc++" library.
  */
 
 #ifndef I3_IPC_EXCEPTION_HPP

@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_unsupported.cpp
+ * \file    i3_ipc_unsupported.cpp
  *
- * Implements member functions of "i3_ipc_unsupported" class.
+ * \brief   Implements member functions of "i3_ipc_unsupported" class.
  */
 
 // Library headers.

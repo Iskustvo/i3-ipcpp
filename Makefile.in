@@ -1,7 +1,7 @@
 ##################################################### LIBRARY INFO #####################################################
 
 LIB_NAME := i3-ipc++
-LIB_VERSION := 0.4.0
+LIB_VERSION := 0.5.0
 
 ##################################################### SOURCE FILES #####################################################
 
@@ -11,11 +11,15 @@ LIB_SOURCES := $(foreach dir,$(LIB_SOURCES_DIRS),$(wildcard $(dir)/*.cpp))
 EXAMPLE_SOURCES_DIR := examples
 EXAMPLE_SOURCES := $(wildcard $(EXAMPLE_SOURCES_DIR)/*.cpp)
 
+SIMULATOR_SOURCES_DIR := docs/simulator
+SIMULATOR_SOURCES := $(foreach extension,tex sty cls,$(wildcard $(SIMULATOR_SOURCES_DIR)/*.$(extension)))
+
 vpath %.cpp $(LIB_SOURCES_DIRS) $(EXAMPLE_SOURCES_DIR)
 
 ##################################################### HEADER FILES #####################################################
 
-INCLUDE_DIRS := include $(LIB_SOURCES_DIRS)
+PUBLIC_HEADER_DIR := include
+ALL_INCLUDE_DIRS := $(PUBLIC_HEADER_DIR) $(LIB_SOURCES_DIRS)
 
 ##################################################### BUILD PATHS ######################################################
 
@@ -23,6 +27,7 @@ INCLUDE_DIRS := include $(LIB_SOURCES_DIRS)
 BUILD_DIR := build
 LIB_BUILD_DIR := $(BUILD_DIR)/lib
 EXAMPLES_BUILD_DIR := $(BUILD_DIR)/examples
+DOCS_BUILD_DIR := $(BUILD_DIR)/docs
 
 # Static library paths.
 STATIC_LIB_BUILD_DIR := $(LIB_BUILD_DIR)/static
@@ -40,10 +45,16 @@ EXAMPLE_DEPENDENCIES_DIR := $(EXAMPLES_BUILD_DIR)/.dependencies
 STATIC_LIB_EXAMPLES_DIR := $(EXAMPLES_BUILD_DIR)/static
 DYNAMIC_LIB_EXAMPLES_DIR := $(EXAMPLES_BUILD_DIR)/dynamic
 
+# Documentation paths.
+HTML_DOCS_BUILD_DIR := $(DOCS_BUILD_DIR)/html
+PDF_DOCS_BUILD_DIR := $(DOCS_BUILD_DIR)/pdf
+SIMULATOR_BUILD_DIR := $(abspath $(DOCS_BUILD_DIR)/simulation)
+
 # List of directories that might need to be created.
 NEEDED_DIRS := $(STATIC_LIB_BUILD_DIR) $(STATIC_LIB_OBJECTS_DIR) $(STATIC_LIB_DEPENDENCIES_DIR) \
                $(DYNAMIC_LIB_BUILD_DIR) $(DYNAMIC_LIB_OBJECTS_DIR) $(DYNAMIC_LIB_DEPENDENCIES_DIR) \
-               $(EXAMPLE_OBJECTS_DIR) $(EXAMPLE_DEPENDENCIES_DIR) $(STATIC_LIB_EXAMPLES_DIR) $(DYNAMIC_LIB_EXAMPLES_DIR)
+               $(EXAMPLE_OBJECTS_DIR) $(EXAMPLE_DEPENDENCIES_DIR) $(STATIC_LIB_EXAMPLES_DIR) $(DYNAMIC_LIB_EXAMPLES_DIR) \
+               $(HTML_DOCS_BUILD_DIR) $(PDF_DOCS_BUILD_DIR) $(SIMULATOR_BUILD_DIR)
 
 #################################################### STATIC LIBRARY ####################################################
 
@@ -86,50 +97,58 @@ endif
 
 ######################################################## FLAGS #########################################################
 
-CPPFLAGS := $(addprefix -I,$(INCLUDE_DIRS)) $(DEBUG_CPPFLAGS)
+CPPFLAGS := $(addprefix -I,$(ALL_INCLUDE_DIRS)) $(DEBUG_CPPFLAGS)
 CXXFLAGS := -std=c++17 -O2 -Wall -Wextra -Wshadow -Wold-style-cast -Wcast-align -Wunused -Wpedantic -Wconversion \
             -Wsign-conversion -Wdouble-promotion -Wformat=2 -Werror -Wfatal-errors $(DEBUG_CXXFLAGS)
 
 ##################################################### PHONY RULES ######################################################
 
 # Real make goals.
-.PHONY: all install uninstall clean distclean
+.PHONY: all docs html pdf simulation install uninstall clean distclean
 
-# Helper rules.
+# Helper goals.
 .PHONY: static_lib static_lib_examples dynamic_lib dynamic_lib_examples \
         install_static_lib install_dynamic_lib install_headers
 
+# Rule for default goal.
 all: $(TARGETS)
 
-static_lib: $(STATIC_LIB)
-static_lib_examples: $(STATIC_LIB_EXAMPLES)
-dynamic_lib: $(DYNAMIC_LIB)
-dynamic_lib_examples: $(DYNAMIC_LIB_EXAMPLES)
-
-install: ${INSTALL_LIBS} install_headers
-
-install_static_lib: ${STATIC_LIB}
-	mkdir -p $(DESTDIR)$(PREFIX)/${LIB_DIR}
-	cp $< $(DESTDIR)$(PREFIX)/${LIB_DIR}
-
-install_dynamic_lib: ${DYNAMIC_LIB}
-	mkdir -p $(DESTDIR)$(PREFIX)/${LIB_DIR}
-	cp $< $(DESTDIR)$(PREFIX)/${LIB_DIR}
-	ln -fs $(<F) $(DESTDIR)$(PREFIX)/${LIB_DIR}/$(VERSIONLESS_SONAME)
-	ldconfig -n $(DESTDIR)$(PREFIX)/${LIB_DIR}
-
-install_headers:
-	mkdir -p $(DESTDIR)$(PREFIX)/${INCLUDE_DIR}
-	cp include/* $(DESTDIR)$(PREFIX)/${INCLUDE_DIR}
+# Rules for alternative goals.
+docs: html pdf
+html: $(HTML_DOCS_BUILD_DIR)/index.html
+pdf: $(PDF_DOCS_BUILD_DIR)/refman.pdf
+simulation: $(SIMULATOR_BUILD_DIR)/example.log
+install: $(INSTALL_LIBS) install_headers
 
 uninstall:
-	$(RM) -rf $(DESTDIR)$(PREFIX)/${LIB_DIR} $(DESTDIR)$(PREFIX)/${INCLUDE_DIR}
+	$(RM) -rf $(DESTDIR)$(PREFIX)/$(LIB_DIR) $(DESTDIR)$(PREFIX)/$(INCLUDE_DIR)
 
 clean:
 	$(RM) -rf $(BUILD_DIR)
 
 distclean: clean
+	$(RM) Doxyfile
 	$(RM) Makefile
+
+# Rules for healper goals.
+static_lib: $(STATIC_LIB)
+static_lib_examples: $(STATIC_LIB_EXAMPLES)
+dynamic_lib: $(DYNAMIC_LIB)
+dynamic_lib_examples: $(DYNAMIC_LIB_EXAMPLES)
+
+install_static_lib: $(STATIC_LIB)
+	mkdir -p $(DESTDIR)$(PREFIX)/$(LIB_DIR)
+	cp $< $(DESTDIR)$(PREFIX)/$(LIB_DIR)
+
+install_dynamic_lib: $(DYNAMIC_LIB)
+	mkdir -p $(DESTDIR)$(PREFIX)/$(LIB_DIR)
+	cp $< $(DESTDIR)$(PREFIX)/$(LIB_DIR)
+	ln -fs $(<F) $(DESTDIR)$(PREFIX)/$(LIB_DIR)/$(VERSIONLESS_SONAME)
+	ldconfig -n $(DESTDIR)$(PREFIX)/$(LIB_DIR)
+
+install_headers:
+	mkdir -p $(DESTDIR)$(PREFIX)/$(INCLUDE_DIR)
+	cp $(PUBLIC_HEADER_DIR)/* $(DESTDIR)$(PREFIX)/$(INCLUDE_DIR)
 
 ######################################################## RULES #########################################################
 
@@ -156,6 +175,30 @@ $(DYNAMIC_LIB_EXAMPLES_DIR)/%: LDFLAGS := -pthread -L$(DYNAMIC_LIB_BUILD_DIR) -W
 $(DYNAMIC_LIB_EXAMPLES_DIR)/%: LDLIBS  := -l$(LIB_NAME)
 $(DYNAMIC_LIB_EXAMPLES_DIR)/%: $(EXAMPLE_OBJECTS_DIR)/%.o $(DYNAMIC_LIB) $(SOLINKS) | $(DYNAMIC_LIB_EXAMPLES_DIR)
 	$(CXX) $(LDFLAGS) -o $@ $< $(LDLIBS)
+
+$(HTML_DOCS_BUILD_DIR)/index.html: $(wildcard $(PUBLIC_HEADER_DIR)/*.hpp) Doxyfile.in | $(HTML_DOCS_BUILD_DIR)
+	cp Doxyfile.in Doxyfile
+	sed -i "s|^\(INPUT \+=\).*|\1 $(PUBLIC_HEADER_DIR)|; \
+            s|^\(OUTPUT_DIRECTORY \+=\).*|\1 $(dir $|)|; \
+            s|^\(GENERATE_HTML \+=\).*|\1 YES|;          \
+            s|^\(HTML_OUTPUT \+=\).*|\1 $(notdir $|)|"   \
+           Doxyfile
+	doxygen Doxyfile
+
+$(PDF_DOCS_BUILD_DIR)/refman.pdf: $(wildcard $(PUBLIC_HEADER_DIR)/*.hpp) Doxyfile.in | $(PDF_DOCS_BUILD_DIR)
+	cp Doxyfile.in Doxyfile
+	sed -i "s|^\(INPUT \+=\).*|\1 $(PUBLIC_HEADER_DIR)|; \
+            s|^\(OUTPUT_DIRECTORY \+=\).*|\1 $(dir $|)|; \
+            s|^\(GENERATE_LATEX \+=\).*|\1 YES|;         \
+            s|^\(LATEX_OUTPUT \+=\).*|\1 $(notdir $|)|"  \
+           Doxyfile
+	doxygen Doxyfile
+	cd $| && $(MAKE)
+
+$(SIMULATOR_BUILD_DIR)/example.log: SIMULATOR_ENVIRONMENT := openout_any=a LATEX_SIMULATOR_OUTPUT=$(SIMULATOR_BUILD_DIR)
+$(SIMULATOR_BUILD_DIR)/example.log: SIMULATOR_FLAGS := -halt-on-error -shell-escape -output-directory=$(SIMULATOR_BUILD_DIR)
+$(SIMULATOR_BUILD_DIR)/example.log: $(SIMULATOR_SOURCES) | $(SIMULATOR_BUILD_DIR)
+	cd $(SIMULATOR_SOURCES_DIR) && $(SIMULATOR_ENVIRONMENT) pdflatex $(SIMULATOR_FLAGS) example.tex
 
 $(NEEDED_DIRS):
 	mkdir -p $@
@@ -220,8 +263,6 @@ $(eval $(call generate_dependency_rules,$(EXAMPLE_DEPENDENCIES_DIR),$(EXAMPLE_OB
 
 # Include needed rules for creating %.o files from %.cpp and *.hpp files it uses.
 # If these rules don't exist yet or are out of date, they will be created by generated rules above.
-ifneq ($(MAKECMDGOALS),clean)
-    ifneq ($(MAKECMDGOALS),distclean)
-        -include $(NEEDED_DEPENDENCIES)
-    endif
+ifeq (,$(shell echo '$(MAKECMDGOALS)' | grep -vwE '(all|install)'))
+    -include $(NEEDED_DEPENDENCIES)
 endif

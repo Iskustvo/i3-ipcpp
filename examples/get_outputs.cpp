@@ -4,7 +4,6 @@
 
 // C++ headers.
 #include <vector>
-#include <string>
 #include <iostream>
 
 int main()

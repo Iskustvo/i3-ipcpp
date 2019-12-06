@@ -1,0 +1,236 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file defines "function_list" structure and methods that interact with it.
+% For details about "function" structure, see "function.sty" file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {function_list}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {expl3}
+\RequirePackage {utility}
+\RequirePackage {function}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ERROR CHECKS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    \utility___enable_error_checks_in_module:n {function_list}
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+% FUNCTION LIST CONSTRUCTION
+
+    % \function_list___new:N #1
+    %
+    % Creates a new empty function list variable.
+    %
+    % #1 -> Name of the new function list variable.
+    %
+    \cs_new_eq:NN \function_list___new:N \clist_clear_new:N
+
+    % \function_list___const:(Nn|Nx) #1 #2
+    %
+    % Creates and initializes a new constant function list variable.
+    %
+    % #1 -> Name of the new constant function list variable.
+    %
+    % #2 -> Value to be set to new constant function list variable.
+    %
+    %%%%%%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%%%%
+    \function_list___new:N \l_function_list___tmp_function_list %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \function_list___const:Nn #1 #2
+    {
+        \function_list___set:Nn \l_function_list___tmp_function_list {#2}
+        \clist_const:NV #1 \l_function_list___tmp_function_list
+    }
+    \cs_generate_variant:Nn \function_list___const:Nn {Nx}
+
+% GETTING INFO FROM FUNCTION LIST
+
+    % \function_list___count:(N|n) #1
+    %
+    % Leaves the number of functions in function list #1 to the input stream.
+    %
+    % #1 -> Function list.
+    %
+    \cs_new_eq:NN \function_list___count:N \clist_count:N
+    \cs_new_eq:NN \function_list___count:n \clist_count:n
+
+    % \function_list___item:(Nn|nn|en) #1 #2
+    %
+    % Leaves the function at index #2 in function list #1 to the input stream.
+    %
+    % #1 -> Function list.
+    %
+    % #2 -> Integer expression which will be evaluated to index.
+    %
+    \cs_new_eq:NN \function_list___item:Nn \clist_item:Nn
+    \cs_new_eq:NN \function_list___item:nn \clist_item:nn
+
+    % \function_list___find_by_name:(nnN|VxN) #1 #2 #3
+    %
+    % Finds the index of function name #2 in function list #1 and sets it in variable #3.
+    %
+    % #1 -> Function list.
+    %
+    % #2 -> Name of the needed function.
+    %
+    % #3 -> Integer variable which will be set to index of first found name(or unchanged in case element doesn't exist).
+    %
+    %%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%
+    \int_new:N \l_function_list___function_index %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \function_list___find_by_name:nnN #1 #2 #3
+    {
+        \int_zero:N \l_function_list___function_index
+        \function_list___map_inline:nn {#1}
+        {
+            \int_incr:N \l_function_list___function_index
+            \tl_if_eq:xnT {\function___get_name:n {##1}} {#2}
+            {
+                \int_set:Nn #3 {\l_function_list___function_index}
+                \function_list___map_break:
+            }
+        }
+    }
+    \cs_generate_variant:Nn \function_list___find_by_name:nnN {VxN}
+
+% MODIFYING FUNCTION LIST
+
+    % \function_list___clear:N #1
+    %
+    % Clears content of the function list variable #1.
+    %
+    % #1 -> Name of the function list variable.
+    %
+    \cs_new_eq:NN \function_list___clear:N \clist_clear:N
+
+    % \function_list___add:(Nn|NV|Nx) #1 #2
+    %
+    % Appends function #2 to the function list variable #1.
+    %
+    % #1 -> Function list variable.
+    %
+    % #2 -> Function which will be added to function list #1.
+    %
+    %%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%
+    \function___new:N \l_function_list___tmp_function %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \function_list___add:Nn #1 #2
+    {
+        % Use \function___set to perform checks on input data from #2.
+        \function___set:Nn \l_function_list___tmp_function {#2}
+        \clist_put_right:Nx #1 {{\exp_not:V \l_function_list___tmp_function}}
+    }
+    \cs_generate_variant:Nn \function_list___add:Nn {NV, Nx}
+
+    % \function_list___set:(Nn|NV|Nx) #1 #2
+    %
+    % Sets function list variable #1 to the function list #2.
+    %
+    % #1 -> Function list variable.
+    %
+    % #2 -> Function list which will be copied to function list variable #1.
+    %
+    \cs_new_protected:Npn \function_list___set:Nn #1 #2
+    {
+        \function_list___clear:N #1
+        \clist_map_inline:nn {#2}
+        {
+            \function_list___add:Nn #1 {##1}
+        }
+    }
+    \cs_generate_variant:Nn \function_list___set:Nn {NV, Nx}
+
+    % \function_list___concat:NN #1 #2
+    %
+    % Concatanates content of function list variable #2 to the function list variable #1.
+    %
+    % #1 -> Function list variable.
+    %
+    % #2 -> Function list variable which data will be concataned to function list variable #1.
+    %
+    \cs_new_protected:Npn \function_list___concat:NN #1 #2
+    {
+        \clist_concat:NNN #1 #1 #2
+    }
+
+% ITERATING OVER FUNCTION LIST
+
+    % \function_list___map_inline:(Nn|nn|xn) #1 #2
+    %
+    % Applies inline code #2 to each function in function list #1.
+    % Current function is accessible by "#1" inside inlined code #2.
+    %
+    % #1 -> Function list.
+    %
+    % #2 -> Code to be applied to each function in function list #1.
+    %
+    \cs_new_eq:NN \function_list___map_inline:Nn \clist_map_inline:Nn
+    \cs_new_eq:NN \function_list___map_inline:nn \clist_map_inline:nn
+    \cs_generate_variant:Nn \function_list___map_inline:nn {Vn}
+
+    % \function_list___map_break:(|n) #1
+    %
+    % Break out of most inner "map" function and executes #1 code afterwards.
+    % Note that since this function is just an alias for \clist_map_break, break will happen for any clist_map function.
+    %
+    % #1 -> Code to be executed after break is done.
+    %
+    \cs_new_eq:NN \function_list___map_break: \clist_map_break:
+    \cs_new_eq:NN \function_list___map_break:n \clist_map_break:n
+
+% FUNCTION LIST CONDITIONALS
+
+    % \function_list___if_in:(nn|Vn|Vx|VV)[TF] #1 #2
+    %
+    % Checks BY FUNCTION NAME if function #2 is in function list #1.
+    %
+    % #1 -> Function list.
+    %
+    % #2 -> Function to be searched for in function list #1.
+    %
+    %%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%
+    \bool_new:N \l_function_list___is_function_in %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \prg_new_protected_conditional:Npnn \function_list___if_in:nn #1 #2 {T, F, TF}
+    {
+        \bool_set_false:N \l_function_list___is_function_in
+        \function_list___map_inline:nn {#1}
+        {
+            \tl_if_eq:xnT {\function___get_name:n {##1}} {#2}
+            {
+                \bool_set_true:N \l_function_list___is_function_in
+                \function_list___map_break:
+            }
+        }
+        \bool_if:NTF \l_function_list___is_function_in {\prg_return_true:} {\prg_return_false:}
+    }
+    \prg_generate_conditional_variant:Nnn \function_list___if_in:nn {Vn, Vx, VV} {T, F, TF}
+
+% FUNCTION LIST LOGGING
+
+    % \function_list___log:(N|n|x) #1
+    %
+    % Logs the value of function list #1.
+    %
+    % #1 -> Function list to be logged.
+    %
+    \cs_new_eq:NN \function_list___log:N \clist_log:N
+    \cs_new_eq:NN \function_list___log:n \clist_log:n
+    \cs_generate_variant:Nn \function_list___log:n {x}
+
+\ExplSyntaxOff

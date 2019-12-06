@@ -1,0 +1,1914 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file defines all functions necessery for simulation of i3-ipc++ library.
+% Simplified public API is expoted through "simulator" class specified in "simulator.cls" file.
+% Appropriate usage can be seen in "example.tex" file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {simulator}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {tikz}
+\RequirePackage {expl3}
+\RequirePackage {utility}
+\RequirePackage {package}
+\RequirePackage {mdsymbol}
+\RequirePackage {textcomp}
+\RequirePackage {settings}
+\RequirePackage {function}
+\RequirePackage {package_list}
+\RequirePackage {package_queue}
+\RequirePackage {function_list}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIKZ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usetikzlibrary {fit}
+\usetikzlibrary {calc}
+\usetikzlibrary {shapes}
+\usetikzlibrary {arrows.meta}
+\usetikzlibrary {backgrounds}
+\usetikzlibrary {decorations.pathmorphing}
+
+\ExplSyntaxOn
+
+    % s_simulator___module
+    %
+    % Style for module nodes: "program", "i3_ipc" and "i3".
+    %
+    \tikzstyle {s_simulator___module} = [
+                                         shape = rectangle,
+                                         draw = none,
+                                         font = \c_simulator___module_label_font
+                                        ]
+
+    % s_simulator___wrap
+    %
+    % Style for wrapping rectangle around existing node.
+    %
+    % #1 -> Name of the node which needs to be wrapped.
+    %
+    \tikzstyle {s_simulator___wrap} = [inner~sep = 0mm, outer~sep = 0mm, fit = (#1)]
+
+    % s_simulator___dashed_line
+    %
+    % Style for dashed line.
+    %
+    \tikzstyle {s_simulator___dashed_line} = [-, dashed, thick, rounded~corners]
+
+    % s_simulator___program_module_dashed_line
+    % s_simulator___ipc_module_dashed_line
+    % s_simulator___window_manager_module_dashed_line
+    %
+    % Dashed line with predefined color for each module.
+    %
+    \tikzstyle {s_simulator___program_module_dashed_line} = [
+                                                             s_simulator___dashed_line,
+                                                             \c_simulator___internal_program_line_color
+                                                            ]
+    \tikzstyle {s_simulator___ipc_module_dashed_line} = [
+                                                         s_simulator___dashed_line,
+                                                         \c_simulator___internal_ipc_line_color
+                                                        ]
+    \tikzstyle {s_simulator___window_manager_module_dashed_line} = [
+                                                                    s_simulator___dashed_line,
+                                                                    \c_simulator___internal_window_manager_line_color
+                                                                   ]
+
+    % s_simulator___program_module_dashed_arrow
+    % s_simulator___ipc_module_dashed_arrow
+    % s_simulator___window_manager_module_dashed_arrow
+    %
+    % Dashed arrow with predefined color for each module.
+    %
+    \tikzstyle {s_simulator___program_module_dashed_arrow} = [s_simulator___program_module_dashed_line, -Stealth]
+    \tikzstyle {s_simulator___ipc_module_dashed_arrow} = [s_simulator___ipc_module_dashed_line, -Stealth]
+    \tikzstyle {s_simulator___window_manager_module_dashed_arrow} = [
+                                                                     s_simulator___window_manager_module_dashed_line,
+                                                                     -Stealth
+                                                                    ]
+
+    % s_simulator___ipc_module_member
+    %
+    % Style used for members of i3_ipc class.
+    %
+    \tikzstyle {s_simulator___ipc_module_member} = [
+                                                    inner~sep = \c_settings___module_member_padding,
+                                                    draw = none,
+                                                    fill = \c_settings___ipc_member_background_color,
+                                                    font = \c_simulator___member_label_font,
+                                                    text = \c_settings___ipc_member_label_color
+                                                   ]
+
+    % s_simulator___highlight
+    %
+    % Style used for highlighting of exiting tikz nodes.
+    %
+    % #1 -> Angle on highlight ellipse where label #3 will be written.
+    %
+    % #2 -> Relative positioning of label #3 from spot on highlight ellipse decided by angle #1.
+    %
+    % #3 -> Label to be drawn on position around highlight ellipse specified by #1 and #2.
+    %
+    \use:x
+    {
+        \exp_not:N \tikzset
+        {
+            s_simulator___highlight/.style~n~args = 3
+            {
+                shape = ellipse,
+                inner~sep = 0mm,
+                outer~sep = 0mm,
+                draw = \c_settings___highlight_color,
+                dashed,
+                very~thick,
+                label = {
+                         [##2, \c_settings___highlight_color]
+                         ##1 \c_colon_str \exp_not:n {\c_simulator___highlight_label_font #3 \textdegree}
+                        }
+            }
+        }
+    }
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CONSTANTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    %%%%% Local initializer variables %%%%%%
+    \dim_new:N \l_simulator___init_dim     %
+    \str_new:N \l_simulator___init_str     %
+    \clist_new:N \l_simulator___init_clist %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% PATHS
+
+    % Get output path from LATEX_SIMULATOR_OUTPUT environment variable.
+    \sys_get_shell:nnN {echo~$LATEX_SIMULATOR_OUTPUT} { } \l_simulator___init_str
+    \str_const:NV \c_simulator___output_path \l_simulator___init_str
+
+% FILES
+
+    % File used for saving intermediate library state while content is being created.
+    \str_const:Nx \c_simulator___temporary_file {\exp_not:V \c_simulator___output_path \exp_not:n {/temporary_data.tex}}
+
+% FONTS
+
+    \utility___const_font:NV \c_simulator___callback_font \c_settings___callback_label_font_size
+    \utility___const_font:NVn \c_simulator___module_label_font \c_settings___module_label_font_size {\bfseries}
+    \utility___const_font:NVn \c_simulator___member_label_font \c_settings___member_label_font_size {\bfseries}
+    \utility___const_font:NVn \c_simulator___highlight_label_font \c_settings___highlight_label_font_size {\bfseries}
+
+% COLORS
+
+    % Colors for API functions.
+    \tl_const:NV \c_simulator___api_function_label_color \c_settings___program_member_label_color
+    \tl_const:NV \c_simulator___focused_api_function_arrow_color \c_settings___program_module_label_color
+    \tl_const:NV \c_simulator___unfocused_api_function_arrow_color \c_settings___program_module_background_color
+    \tl_const:NV \c_simulator___api_function_return_arrow_color \c_settings___ipc_module_label_color
+
+    % Colors for IPC functions.
+    \tl_const:NV \c_simulator___ipc_function_label_color \c_settings___ipc_member_label_color
+    \tl_const:NV \c_simulator___focused_ipc_function_arrow_color \c_settings___ipc_module_label_color
+    \tl_const:NV \c_simulator___unfocused_ipc_function_arrow_color \c_settings___ipc_module_background_color
+    \tl_const:NV \c_simulator___ipc_function_return_arrow_color \c_settings___window_manager_module_label_color
+
+    % Colors of helper lines contained within modules.
+    \tl_const:NV \c_simulator___internal_program_line_color \c_settings___program_module_label_color
+    \tl_const:NV \c_simulator___internal_ipc_line_color \c_settings___ipc_module_label_color
+    \tl_const:NV \c_simulator___internal_window_manager_line_color \c_settings___window_manager_module_label_color
+
+
+% FUNCTIONS
+
+    % Request functions.
+    \function___const:Nx \c_simulator___function_execute_commands
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::execute \texttt{_} commands}},
+        {{\c_settings___color_for_user_data_sent_to_window_manager, C}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_get_workspaces
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} workspaces}},
+        {},
+        {{\c_settings___package_response_color, W}}
+    }
+    \function___const:Nx \c_simulator___function_get_outputs
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} outputs}},
+        {},
+        {{\c_settings___package_response_color, O}}
+    }
+    \function___const:Nx \c_simulator___function_get_tree
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} tree}},
+        {},
+        {{\c_settings___package_response_color, T}}
+    }
+    \function___const:Nx \c_simulator___function_get_marks
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} marks}},
+        {},
+        {{\c_settings___package_response_color, M}}
+    }
+    \function___const:Nx \c_simulator___function_get_bar_IDs
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} bar \texttt{_} IDs}},
+        {},
+        {{\c_settings___package_response_color, B}}
+    }
+    \function___const:Nx \c_simulator___function_get_bar_config
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} bar \texttt{_} config}},
+        {},
+        {{\c_settings___package_response_color, B}}
+    }
+    \function___const:Nx \c_simulator___function_get_version
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} version}},
+        {},
+        {{\c_settings___package_response_color, V}}
+    }
+    \function___const:Nx \c_simulator___function_get_binding_modes
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} binding \texttt{_} modes}},
+        {},
+        {{\c_settings___package_response_color, M}}
+    }
+    \function___const:Nx \c_simulator___function_get_config
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::get \texttt{_} config}},
+        {},
+        {{\c_settings___package_response_color, C}}
+    }
+    \function___const:Nx \c_simulator___function_send_tick
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::send \texttt{_} tick}},
+        {{\c_settings___color_for_user_data_sent_to_window_manager, T}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_sync
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::sync}},
+        {{\c_settings___color_for_user_data_sent_to_window_manager, S}},
+        {}
+    }
+
+    % Event handler functions.
+    \function___const:Nx \c_simulator___function_on_workspace_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} workspace \texttt{_} event}},
+        {{\c_settings___workspace_event_color, {}}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_on_output_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} output \texttt{_} event}},
+        {{\c_settings___output_event_color, {}}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_on_mode_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} mode \texttt{_} event}},
+        {{\c_settings___mode_event_color, {}}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_on_window_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} window \texttt{_} event}},
+        {{\c_settings___window_event_color, {}}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_on_bar_config_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} bar \texttt{_} config \texttt{_} event}},
+        {{\c_settings___bar_config_event_color, {}}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_on_binding_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} binding \texttt{_} event}},
+        {{\c_settings___binding_event_color, {}}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_on_shutdown_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} shutdown \texttt{_} event}},
+        {{\c_settings___shutdown_event_color, {}}},
+        {}
+    }
+    \function___const:Nx \c_simulator___function_on_tick_event
+    {
+        {\exp_not:n {i3 \texttt{_} ipc::on \texttt{_} tick \texttt{_} event}},
+        {{\c_settings___tick_event_color, {}}},
+        {}
+    }
+
+    % Misc functions.
+    \function___const:Nn \c_simulator___function_handle_next_event
+    {
+        {i3 \texttt{_} ipc::handle \texttt{_} next \texttt{_} event},
+        {},
+        {}
+    }
+
+    % IPC functions.
+    \function___const:Nn \c_simulator___function_send
+    {
+        {i3 \texttt{_} message::send},
+        {},
+        {}
+    }
+    \function___const:Nn \c_simulator___function_receive
+    {
+        {i3 \texttt{_} message::receive},
+        {},
+        {}
+    }
+
+% FUNCTION GROUPING
+
+    % Request functions.
+    \function_list___const:Nx \c_simulator___request_functions
+    {
+        {\exp_not:V \c_simulator___function_execute_commands},
+        {\exp_not:V \c_simulator___function_get_workspaces},
+        {\exp_not:V \c_simulator___function_get_outputs},
+        {\exp_not:V \c_simulator___function_get_tree},
+        {\exp_not:V \c_simulator___function_get_marks},
+        {\exp_not:V \c_simulator___function_get_bar_IDs},
+        {\exp_not:V \c_simulator___function_get_bar_config},
+        {\exp_not:V \c_simulator___function_get_version},
+        {\exp_not:V \c_simulator___function_get_binding_modes},
+        {\exp_not:V \c_simulator___function_get_config},
+        {\exp_not:V \c_simulator___function_send_tick},
+        {\exp_not:V \c_simulator___function_sync}
+    }
+
+    % Event handler functions.
+    \function_list___const:Nx \c_simulator___event_handlers
+    {
+        {\exp_not:V \c_simulator___function_on_workspace_event},
+        {\exp_not:V \c_simulator___function_on_output_event},
+        {\exp_not:V \c_simulator___function_on_mode_event},
+        {\exp_not:V \c_simulator___function_on_window_event},
+        {\exp_not:V \c_simulator___function_on_bar_config_event},
+        {\exp_not:V \c_simulator___function_on_binding_event},
+        {\exp_not:V \c_simulator___function_on_shutdown_event},
+        {\exp_not:V \c_simulator___function_on_tick_event}
+    }
+
+    % API functions which send data to i3.
+    \function_list___const:Nx \c_simulator___functions_sending_data_to_window_manager
+    {
+        {\exp_not:V \c_simulator___function_execute_commands},
+        {\exp_not:V \c_simulator___function_send_tick},
+        {\exp_not:V \c_simulator___function_sync}
+    }
+
+    % Functions requiring data from i3.
+    \function_list___const:Nx \c_simulator___functions_requesting_data_from_window_manager
+    {
+        {\exp_not:V \c_simulator___function_get_workspaces},
+        {\exp_not:V \c_simulator___function_get_outputs},
+        {\exp_not:V \c_simulator___function_get_tree},
+        {\exp_not:V \c_simulator___function_get_marks},
+        {\exp_not:V \c_simulator___function_get_bar_IDs},
+        {\exp_not:V \c_simulator___function_get_bar_config},
+        {\exp_not:V \c_simulator___function_get_version},
+        {\exp_not:V \c_simulator___function_get_binding_modes},
+        {\exp_not:V \c_simulator___function_get_config}
+    }
+
+    % Functions requiring success status from i3.
+    \function_list___const:Nx \c_simulator___functions_requiring_success_status_from_window_manager
+    {
+        {\exp_not:V \c_simulator___function_execute_commands},
+        {\exp_not:V \c_simulator___function_send_tick},
+        {\exp_not:V \c_simulator___function_sync},
+        \exp_not:V \c_simulator___event_handlers
+    }
+
+    % Functions requiring response from i3.
+    \function_list___const:Nx \c_simulator___functions_requiring_response_from_window_manager
+    {
+        \exp_not:V \c_simulator___functions_requesting_data_from_window_manager,
+        \exp_not:V \c_simulator___functions_requiring_success_status_from_window_manager
+    }
+
+    % All i3-ipc++ API functions.
+    \function_list___const:Nx \c_simulator___api_functions
+    {
+        \exp_not:V \c_simulator___request_functions,
+        \exp_not:V \c_simulator___event_handlers,
+        {\exp_not:V \c_simulator___function_handle_next_event}
+    }
+
+    % IPC functions.
+    \function_list___const:Nx \c_simulator___ipc_functions
+    {
+        {\exp_not:V \c_simulator___function_send},
+        {\exp_not:V \c_simulator___function_receive}
+    }
+
+% PACKAGES
+
+    % Events.
+    \package___const:Nx \c_simulator___workspace_event {\c_settings___workspace_event_color, E}
+    \package___const:Nx \c_simulator___output_event {\c_settings___output_event_color, E}
+    \package___const:Nx \c_simulator___mode_event {\c_settings___mode_event_color, E}
+    \package___const:Nx \c_simulator___window_event {\c_settings___window_event_color, E}
+    \package___const:Nx \c_simulator___bar_config_event {\c_settings___bar_config_event_color, E}
+    \package___const:Nx \c_simulator___binding_event {\c_settings___binding_event_color, E}
+    \package___const:Nx \c_simulator___shutdown_event {\c_settings___shutdown_event_color, E}
+    \package___const:Nx \c_simulator___tick_event {\c_settings___tick_event_color, E}
+
+    % Subscription request package.
+    \package___const:Nx \c_simulator___subscription_request_package {\c_settings___package_request_color, S}
+
+    % Status response.
+    \package___const:Nx \c_simulator___status_response_package {\c_settings___package_response_color, S}
+
+% PACKAGE GROUPING
+
+    % All types of event packages.
+    \package_list___const:Nx \c_simulator___events
+    {
+        {\c_simulator___workspace_event},
+        {\c_simulator___output_event},
+        {\c_simulator___mode_event},
+        {\c_simulator___window_event},
+        {\c_simulator___bar_config_event},
+        {\c_simulator___binding_event},
+        {\c_simulator___shutdown_event},
+        {\c_simulator___tick_event}
+    }
+
+% COLOR GROUPING
+
+    % All colors that packages can have in any moment.
+    \clist_const:Nx \c_settings___all_package_colors
+    {
+        \c_settings___color_for_user_data_sent_to_window_manager,
+        \c_settings___workspace_event_color,
+        \c_settings___output_event_color,
+        \c_settings___mode_event_color,
+        \c_settings___window_event_color,
+        \c_settings___bar_config_event_color,
+        \c_settings___binding_event_color,
+        \c_settings___shutdown_event_color,
+        \c_settings___tick_event_color,
+        \c_settings___package_request_color,
+        \c_settings___package_response_color
+    }
+
+% CAPACITIES
+
+    \int_const:Nx \c_simulator___m_callbacks_capacity {\package_list___count:N \c_simulator___events}
+    \int_const:Nn \c_simulator___m_event_queue_capacity {\c_simulator___m_callbacks_capacity}
+
+% DIMENSIONS
+
+    % Calculate width and height of Program module.
+    \utility___measure_tikz_width_and_height:NNn \c_simulator___program_module_width
+                                                 \c_simulator___program_module_height
+    {
+        \use:x
+        {
+            \exp_not:N \node [
+                              s_simulator___module,
+                              inner~sep = \c_settings___program_module_padding,
+                              align = center,
+                              fill = \c_settings___program_module_background_color,
+                              label = {
+                                       [
+                                        inner~sep = 0mm,
+                                        outer~sep = 0mm,
+                                        align = center,
+                                        font = \exp_not:N \c_simulator___module_label_font,
+                                        scale = \fp_to_decimal:N \c_settings___module_label_font_scale,
+                                        \c_settings___program_module_label_color
+                                       ]
+                                       center \c_colon_str \exp_not:n {P\\r\\o\\g\\r\\a\\m}
+                                      }
+                             ] {};
+        }
+    }
+
+    % Generate all API function labels to measure them.
+    \clist_clear:N \l_simulator___init_clist
+    \function_list___map_inline:Vn \c_simulator___api_functions
+    {
+        \clist_put_right:Nx \l_simulator___init_clist {\function___get_label:n {#1}}
+    }
+    \clist_const:NV \c_simulator___api_function_labels \l_simulator___init_clist
+
+    % Calculate maximum width of all API function labels.
+    \utility___set_to_maximum_dimension:nNV {width} \l_simulator___init_dim \c_simulator___api_function_labels
+    \dim_const:Nn \c_simulator___maximum_width_of_api_function_labels {\l_simulator___init_dim}
+
+    % Calculate maximum height of all API function labels.
+    \utility___set_to_maximum_dimension:nNV {total_height} \l_simulator___init_dim \c_simulator___api_function_labels
+    \dim_const:Nn \c_simulator___maximum_height_of_api_function_labels {\l_simulator___init_dim}
+
+    % Calculate distance from Program to i3-ipc++.
+    \dim_const:Nn \c_simulator___distance_from_program_to_library
+    {
+        \c_simulator___maximum_width_of_api_function_labels
+        + \dim_max:nn {\c_settings___function_label_padding * 2} {\c_settings___module_margin * 2}
+    }
+
+    % Calculate height of highlight label.
+    \utility___set_to_dimension:nNn {total_height} \l_simulator___init_dim
+    {
+        \exp_not:V \c_simulator___highlight_label_font 0123456789 \textdegree
+    }
+    \dim_const:Nn \c_simulator___highlight_label_height {\l_simulator___init_dim}
+
+    % Calculate width and height of i3_ipc's label.
+    \utility___measure_tikz_width_and_height:NNn \c_simulator___ipc_module_label_width
+                                                 \c_simulator___ipc_module_label_height
+    {
+        \node [
+               inner~sep = 0mm,
+               font = \c_simulator___module_label_font
+               scale = \fp_to_decimal:N \c_settings___module_label_font_scale,
+              ]
+            {i3 \texttt{_} ipc};
+    }
+
+    % Calculate exact width and height of m_socket ellipse. (Ellipse height is 2 * width of label)
+    \utility___set_to_dimension:nNx {width} \l_simulator___init_dim
+    {
+        \exp_not:V \c_simulator___member_label_font m_socket
+    }
+    \utility___measure_tikz_width_and_height:NNn \c_simulator___m_socket_width \c_simulator___m_socket_height
+    {
+        \node [
+               s_simulator___ipc_module_member,
+               shape = ellipse,
+               inner~sep = 0mm,
+               minimum~height = \l_simulator___init_dim * 2,
+              ]
+            {m \texttt{_} socket};
+    }
+
+    % Calculate width and height of i3_json_parser.
+    \utility___measure_tikz_width_and_height:NNn \c_simulator___json_parser_width \c_simulator___json_parser_height
+    {
+        \node [inner~sep = \c_settings___json_parser_padding, font = \c_simulator___module_label_font]
+            {i3 \texttt{_} json \texttt{_} parser};
+    }
+
+    % Calculate width and height of m_event_queue.
+    \utility___measure_tikz_width_and_height:NNn \c_simulator___m_event_queue_width \c_simulator___m_event_queue_height
+    {
+        \node [
+               s_simulator___ipc_module_member,
+               minimum~width = \the\c_simulator___m_event_queue_capacity * \c_settings___package_size,
+              ]
+            {m \texttt{_} event \texttt{_} queue};
+    }
+
+    % Calculate width and height of m_callbacks.
+    \utility___measure_tikz_width_and_height:NNn \c_simulator___m_callbacks_width \c_simulator___m_callbacks_height
+    {
+        \node [
+               s_simulator___ipc_module_member,
+               minimum~width = \the\c_simulator___m_callbacks_capacity * \c_settings___package_size,
+              ]
+            {m \texttt{_} callbacks};
+    }
+
+    % Calculate width and height of callback execution node.
+    \utility___measure_tikz_width_and_height:NNn \c_simulator___callback_width \c_simulator___callback_height
+    {
+        \node [
+               shape = ellipse,
+               decorate,
+               decoration = zigzag,
+               font = \c_simulator___callback_font
+              ]
+            {C \textsubscript{1}(E)};
+    }
+
+    % Calculate width of i3_ipc module.
+    \dim_const:Nn \c_simulator___ipc_module_width
+    {
+        \c_settings___ipc_module_padding_left
+        + \c_simulator___json_parser_width
+        + \c_simulator___m_socket_width
+        + \c_settings___ipc_module_padding_right
+    }
+
+    % Calculate height of i3_ipc module.
+    \dim_const:Nn \c_simulator___ipc_module_height
+    {
+        \c_settings___ipc_module_padding_top
+        + \c_simulator___ipc_module_label_height
+        + \c_settings___y_distance_from_ipc_label_to_m_socket
+        + \c_simulator___m_socket_height
+        + \c_simulator___json_parser_height / 2
+        + \c_settings___y_distance_from_json_parser_to_m_event_queue
+        + \c_simulator___m_event_queue_height
+        + \c_settings___y_distance_from_member_to_its_content
+        + \c_settings___package_size
+        + \c_settings___y_distance_from_m_event_queue_to_m_callbacks
+        + \c_simulator___m_callbacks_height
+        + \c_settings___y_distance_from_member_to_its_content
+        + \c_settings___package_size
+        + \c_settings___line_breaking
+        + \c_settings___ipc_module_padding_bottom
+    }
+
+    % Generate all IPC function labels to measure them.
+    \clist_clear:N \l_simulator___init_clist
+    \function_list___map_inline:Vn \c_simulator___ipc_functions
+    {
+        \clist_put_right:Nx \l_simulator___init_clist {\function___get_label:n {#1}}
+    }
+    \clist_const:NV \c_simulator___ipc_function_labels \l_simulator___init_clist
+
+    % Calculate maximum width of all IPC function labels.
+    \utility___set_to_maximum_dimension:nNV {width} \l_simulator___init_dim \c_simulator___ipc_function_labels
+    \dim_const:Nn \c_simulator___maximum_width_of_ipc_function_labels {\l_simulator___init_dim}
+
+    % Calculate maximum height of all IPC function labels.
+    \utility___set_to_maximum_dimension:nNV {total_height} \l_simulator___init_dim \c_simulator___ipc_function_labels
+    \dim_const:Nn \c_simulator___maximum_height_of_ipc_function_labels {\l_simulator___init_dim}
+
+    % Calculate distance from i3_ipc to i3.
+    \dim_const:Nn \c_simulator___distance_from_library_to_window_manager
+    {
+        \c_simulator___maximum_width_of_ipc_function_labels
+        + \dim_max:nn {\c_settings___function_label_padding * 2} {\c_settings___module_margin * 2}
+    }
+
+    % Calculate width of i3.
+    \dim_const:Nn \c_simulator___window_manager_width
+    {
+        \c_settings___window_manager_padding_left
+        + \c_simulator___m_socket_width
+        + \c_settings___window_manager_padding_right
+    }
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GLOBALS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    % Data in i3's socket.
+    \package_queue___new:N \g_simulator___socket_data
+
+    % Data in i3_ipc's m_event_queue.
+    \package_queue___new:N \g_simulator___m_event_queue
+
+    % Stored callbacks in i3_ipc's m_callbacks.
+    \package_list___new:N \g_simulator___m_callbacks
+    \package_list___set:Nx \g_simulator___m_callbacks
+    {
+        {\c_settings___workspace_event_color,  {}},
+        {\c_settings___output_event_color,     {}},
+        {\c_settings___mode_event_color,       {}},
+        {\c_settings___window_event_color,     {}},
+        {\c_settings___bar_config_event_color, {}},
+        {\c_settings___binding_event_color,    {}},
+        {\c_settings___shutdown_event_color,   {}},
+        {\c_settings___tick_event_color,       {}}
+    }
+
+    % Callback IDs - Used for unique generation of callback names.
+    \clist_new:N \g_simulator___callback_counters
+    \foreach \i in {1,...,\package_list___count:N \c_simulator___events}
+    {
+        \clist_gput_right:Nn \g_simulator___callback_counters {0}
+    }
+
+    % Counter used for highlighting the steps of simulation.
+    \int_zero_new:N \g_simulator___highlight_counter
+
+    % Bool specifying invalid input where user is trying to simulate handling of event without giving the event.
+    \bool_new:N \g_simulator___is_waiting_for_event
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ERROR CHECKS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    \utility___enable_error_checks_in_module:n {simulator}
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CONSTRAINTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    % Package colors must be unique because they are used as part of logic.
+    \foreach \i in {1,...,\int_eval:n {\clist_count:N \c_settings___all_package_colors - 1}}
+    {
+        \foreach \j in {\int_eval:n {\i + 1},...,\clist_count:N \c_settings___all_package_colors}
+        {
+            \tl_if_eq:xxT {\clist_item:Nn \c_settings___all_package_colors {\i}}
+                          {\clist_item:Nn \c_settings___all_package_colors {\j}}
+            {
+                \utility___error:nnn {simulator} {Package~colors~must~be~unique~because~they~are~used~in~logic!}
+                                                 {Make~sure~that~colors~in~settings.sty~are~unique~values!}
+            }
+        }
+    }
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    % \simulator___draw_modules:(n|V) #1
+    %
+    % Draws basic overlay of the modules(program, i3-ipc++ library and i3 window manager) and their components.
+    %
+    % #1 -> Image height - Used as height of each module.
+    %
+    %%%%%%%%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%%%%%%%
+    \dim_new:N \l_simulator___y_distance_from_ipc_module_to_m_socket %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___draw_modules:n #1
+    {
+        % Draw program module.
+
+        \use:x
+        {
+            \exp_not:N \node (program) [
+                                        s_simulator___module,
+                                        minimum~width = \exp_not:N \c_simulator___program_module_width,
+                                        minimum~height = #1,
+                                        inner~sep = \c_settings___program_module_padding,
+                                        align = center,
+                                        fill = \c_settings___program_module_background_color,
+                                        label = {
+                                                 [
+                                                  inner~sep = 0mm,
+                                                  outer~sep = 0mm,
+                                                  align = center,
+                                                  font = \exp_not:N \c_simulator___module_label_font,
+                                                  scale = \fp_to_decimal:N \c_settings___module_label_font_scale,
+                                                  \c_settings___program_module_label_color
+                                                 ]
+                                                 center \c_colon_str \exp_not:n {P\\r\\o\\g\\r\\a\\m}
+                                                }
+                                       ] {};
+        }
+
+        % Draw i3-ipc++ module.
+        \node (i3-ipc++) [
+                          s_simulator___module,
+                          minimum~width = \c_simulator___ipc_module_width,
+                          minimum~height = #1,
+                          anchor = west,
+                          fill = \c_settings___ipc_module_background_color
+                         ]
+            at ([xshift = \c_simulator___distance_from_program_to_library] program.east) {};
+
+        % Write i3_ipc label.
+        \node [
+               inner~sep = 0mm,
+               anchor = north,
+               font = \c_simulator___module_label_font,
+               scale = \fp_to_decimal:N \c_settings___module_label_font_scale,
+               text = \c_settings___ipc_module_label_color
+              ]
+            at ([yshift = -\c_settings___ipc_module_padding_top] i3-ipc++.north)
+            {i3 \texttt{_} ipc};
+
+        % Calculate distance from i3_ipc to m_socket.
+        \dim_set:Nn \l_simulator___y_distance_from_ipc_module_to_m_socket
+        {
+            \dim_max:nn
+            {
+                \c_settings___ipc_module_padding_top
+                + \c_simulator___ipc_module_label_height
+                + \c_settings___y_distance_from_ipc_label_to_m_socket
+            }
+            {
+                \c_simulator___maximum_height_of_ipc_function_labels
+                + \c_settings___distance_from_function_label_to_function_arrow
+                + \c_function___maximum_function_arrow_height / 2
+            }
+        }
+
+        % If picture height is greater than needed height of i3-ipc++ module, place m_socket in the middle of i3_ipc.
+        \dim_compare:nNnT
+            {(#1 - \c_simulator___ipc_module_height) / 2} > {\l_simulator___y_distance_from_ipc_module_to_m_socket}
+        {
+            \dim_set:Nn \l_simulator___y_distance_from_ipc_module_to_m_socket
+            {
+                (#1 - \c_simulator___ipc_module_height) / 2
+            }
+        }
+
+        % Draw m_socket member.
+        \node (m_socket) [
+                          s_simulator___ipc_module_member,
+                          inner~sep = 0mm,
+                          shape = ellipse,
+                          anchor = north,
+                          xshift = - \c_settings___ipc_module_padding_right - \c_simulator___m_socket_width / 2,
+                          yshift = - \l_simulator___y_distance_from_ipc_module_to_m_socket,
+                          minimum~width = \c_simulator___m_socket_width,
+                          minimum~height = \c_simulator___m_socket_height,
+                         ]
+            at (i3-ipc++.north~east)
+            {m \texttt{_} socket};
+
+        % Draw i3_json_parser sub-module.
+        \draw let
+                  \p1 = (m_socket.west),
+                  \p2 = (m_socket.south)
+              in
+                  node (i3_json_parser) [
+                                         inner~sep = \c_settings___json_parser_padding,
+                                         dashed,
+                                         rounded~corners,
+                                         anchor = east,
+                                         minimum~width = \c_simulator___json_parser_width,
+                                         minimum~height = \c_simulator___json_parser_height,
+                                         font = \c_simulator___module_label_font,
+                                         draw = \c_settings___ipc_module_label_color,
+                                         text = \c_settings___ipc_module_label_color
+                                        ]
+                      at (\x1, \y2)
+                      {i3 \texttt{_} json \texttt{_} parser};
+
+        % Draw m_event_queue member.
+        \node (m_event_queue) [
+                               s_simulator___ipc_module_member,
+                               shape = rectangle,
+                               rounded~corners,
+                               anchor = north~west,
+                               minimum~width = \c_simulator___m_event_queue_width,
+                              ]
+            at ([yshift = -\c_settings___y_distance_from_json_parser_to_m_event_queue] i3_json_parser.south~west)
+            {m \texttt{_} event \texttt{_} queue};
+
+        % Draw m_callbacks member.
+        \draw let
+                  \p1 = (m_event_queue.south),
+                  \p2 = (i3-ipc++.east),
+                  \n{x} = {\x2 - \c_settings___ipc_module_padding_right},
+                  \n{y} = {
+                           \y1
+                           - \c_settings___y_distance_from_member_to_its_content
+                           - \c_settings___package_size
+                           - \c_settings___y_distance_from_m_event_queue_to_m_callbacks
+                          }
+              in
+                  node (m_callbacks) [
+                                      s_simulator___ipc_module_member,
+                                      shape = rectangle,
+                                      rounded~corners,
+                                      anchor = north~east,
+                                      minimum~width = \c_simulator___m_callbacks_width
+                                     ]
+                      at (\n{x}, \n{y})
+                      {m \texttt{_} callbacks};
+
+        % Draw i3 module.
+        \node (i3) [
+                    s_simulator___module,
+                    anchor = west,
+                    minimum~width = \c_simulator___window_manager_width,
+                    minimum~height = #1,
+                    fill = \c_settings___window_manager_module_background_color
+                   ]
+            at ([xshift = \c_simulator___distance_from_library_to_window_manager] i3-ipc++.east) {};
+
+        % Write i3 label.
+        \node [
+               inner~sep = 0mm,
+               anchor = north,
+               text = \c_settings___window_manager_module_label_color,
+               font = \c_simulator___module_label_font,
+               scale = \fp_to_decimal:N \c_settings___module_label_font_scale
+              ]
+            at ([yshift = -\c_settings___ipc_module_padding_top] i3.north)
+            {i3};
+
+        % Draw i3's socket.
+        \node (socket) [
+                        shape = ellipse,
+                        inner~sep = 0mm,
+                        anchor = north,
+                        xshift = \c_settings___window_manager_padding_left + \c_simulator___m_socket_width / 2,
+                        yshift = - \l_simulator___y_distance_from_ipc_module_to_m_socket,
+                        minimum~width = \c_simulator___m_socket_width,
+                        minimum~height = \c_simulator___m_socket_height,
+                        draw = none,
+                        fill = \c_settings___window_manager_member_background_color,
+                        font = \c_simulator___member_label_font,
+                        text = \c_settings___window_manager_member_label_color
+                       ]
+            at (i3.north~west)
+            {socket};
+
+        % Setup bacground color.
+        \begin{scope} [on~background~layer]
+            \node [
+                   inner~sep = \c_settings___image_margin,
+                   fill = \c_settings___background_color,
+                   fit = (program) (i3-ipc++) (i3)
+                  ] {};
+        \end{scope}
+    }
+    \cs_generate_variant:Nn \simulator___draw_modules:n {V}
+
+    % \simulator___draw_function_calls:(nnnn|nnVV) #1 #2 #3 #4
+    %
+    % Draws function list #3 from node #1 to node #2.
+    % Function with index #4 is considered focused and is drawn in color and with return value(if it has it).
+    %
+    % #1 -> Object executing the function calls.
+    %
+    % #2 -> Object receiving the function calls.
+    %
+    % #3 -> List of function calls that is being drawn.
+    %
+    % #4 -> Index of focused function in the function list #3. (Counting from 1)
+    %
+    %%%%%%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%%%%
+    \int_new:N \l_simulator___function_index                    %
+    \dim_new:N \l_simulator___available_height_for_one_function %
+    \dim_new:N \l_simulator___y_top_of_caller_object            %
+    \dim_new:N \l_simulator___y_bottom_of_caller_object         %
+    \bool_new:N \l_simulator___is_function_focused              %
+    \bool_new:N \l_simulator___is_function_event_handler        %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___draw_function_calls:nnnn #1 #2 #3 #4
+    {
+        % Calculate even drawing area for each function call.
+        \pgfextracty {\l_simulator___y_top_of_caller_object}    {\pgfpointanchor {#1} {north}}
+        \pgfextracty {\l_simulator___y_bottom_of_caller_object} {\pgfpointanchor {#1} {south}}
+        \dim_set:Nn \l_simulator___available_height_for_one_function
+        {
+            (
+             \l_simulator___y_top_of_caller_object
+             - \l_simulator___y_bottom_of_caller_object
+            ) / \function_list___count:n {#3}
+        }
+
+        % Draw function calls #3 between caller #1 and callee #2.
+        \int_zero:N \l_simulator___function_index
+        \function_list___map_inline:nn {#3}
+        {
+            \int_incr:N \l_simulator___function_index
+
+            % Check if current function is focused.
+            \bool_set:Nn \l_simulator___is_function_focused {\int_compare_p:nNn {\l_simulator___function_index} = {#4}}
+
+            % Specify drawing area for current function call.
+            \draw let
+                      \p1 = (#1.east),
+                      \p2 = (#2.west),
+                      \n{x} = {\x1 + \c_settings___module_margin},
+                      \n{y} = {
+                               \l_simulator___y_top_of_caller_object
+                               - \l_simulator___available_height_for_one_function
+                                 * \int_eval:n {\l_simulator___function_index - 1}
+                              },
+                      \n{width} = {\x2 - \x1 - \c_settings___module_margin * 2},
+                      \n{height} = {\l_simulator___available_height_for_one_function}
+                  in
+                      node (l_simulator___drawing_area) [
+                                                         anchor = north~west,
+                                                         minimum~width = \n{width},
+                                                         minimum~height = \n{height}
+                                                        ]
+                          at (\n{x}, \n{y}) {};
+
+            % Check if current function is event handler.
+            \function_list___if_in:VxTF \c_simulator___event_handlers {\function___get_name:n {##1}}
+            {
+                \bool_set_true:N \l_simulator___is_function_event_handler
+            }
+            {
+                \bool_set_false:N \l_simulator___is_function_event_handler
+            }
+
+            % Draw current function on specified area.
+            \bool_if:NTF \l_simulator___is_function_focused
+            {
+                % If function is focused, draw it with return packages.
+                \function___draw:nnnx {##1}
+                                      {l_simulator___drawing_area}
+                                      {center}
+                                      {
+                                       \exp_not:V \c_simulator___api_function_label_color,
+                                       \exp_not:V \c_simulator___focused_api_function_arrow_color,
+                                       \exp_not:V \c_simulator___api_function_return_arrow_color
+                                      }
+            }
+            {
+                % If function is not focused, draw it without return packages.
+                % Only previous event handlers will have drawn callbacks to show user which callback came from where.
+                \function___draw:xnnx {
+                                       \bool_lazy_and:nnTF {\int_compare_p:nNn {\l_simulator___function_index} < {#4}}
+                                                           {\l_simulator___is_function_event_handler}
+                                       {
+                                           \exp_not:n {##1}
+                                       }
+                                       {
+                                           \function___replace_package_list:nn {##1} {}
+                                       }
+                                      }
+                                      {l_simulator___drawing_area}
+                                      {center}
+                                      {
+                                       \exp_not:V \c_simulator___api_function_label_color,
+                                       \exp_not:V \c_simulator___unfocused_api_function_arrow_color,
+                                      }
+            }
+
+            % Draw invisible rectangles around parts of focused function, for future use.
+            \bool_if:NT \l_simulator___is_function_focused
+            {
+                \node (g_simulator___focused_function_label) [s_simulator___wrap = g_function___function_label] {};
+                \node (g_simulator___focused_function_arrow) [s_simulator___wrap = g_function___function_arrow] {};
+                \utility___if_tikz_node_exists:nT {g_function___return_arrow}
+                {
+                    \node (g_simulator___focused_return_arrow) [s_simulator___wrap = g_function___return_arrow] {};
+                }
+                \utility___if_tikz_node_exists:nT {g_function___function_packages}
+                {
+                    \node (g_simulator___focused_function_packages) [
+                                                                     s_simulator___wrap = g_function___function_packages
+                                                                    ] {};
+                }
+                \utility___if_tikz_node_exists:nT {g_function___return_packages}
+                {
+                    \node (g_simulator___focused_return_packages) [
+                                                                   s_simulator___wrap = g_function___return_packages
+                                                                  ] {};
+                }
+            }
+        }
+    }
+    \cs_generate_variant:Nn \simulator___draw_function_calls:nnnn {nnVV}
+
+    % \simulator___create_request_function:Nn #1 #2
+    %
+    % Creates request function for i3 based on currently simulated function #2 and stores it in function variable #1.
+    %
+    % #1 - Function variable which will hold newly created request function.
+    %
+    % #2 - Currently simulated function.
+    %
+    \cs_new_protected:Npn \simulator___create_request_function:Nn #1 #2
+    {
+        % Take template for request function.
+        \function___set:NV #1 \c_simulator___function_send
+
+        % If function being simulated is event handler, request subscription.
+        \function_list___if_in:VxT \c_simulator___event_handlers {\function___get_name:n {#2}}
+        {
+            \function___set_package_list:Nx #1 {{\exp_not:V \c_simulator___subscription_request_package}}
+        }
+
+        % If function being simulated needs to send data to i3, forward it through request function.
+        \function_list___if_in:VxT \c_simulator___functions_sending_data_to_window_manager {\function___get_name:n {#2}}
+        {
+            \function___set_package_list:Nx #1 {\function___get_packages:n {#2}}
+        }
+
+        % If function being simulated requires data from i3, send request for that data.
+        \function_list___if_in:VxT \c_simulator___functions_requesting_data_from_window_manager
+                                   {\function___get_name:n {#2}}
+        {
+            \function___set_package_list:Nx #1
+            {
+                {
+                 \package___change_color:eV {\function___get_only_return_package:n {#2}}
+                                            \c_settings___package_request_color
+                }
+            }
+        }
+    }
+
+    % \simulator___send_message_to_window_manager:(nn|Vn) #1 #2
+    %
+    % Draws data being sent from i3-ipc++ to i3.
+    %
+    % #1 -> Request function to be sent.
+    %
+    % #2 -> Function being simulated.
+    %
+    \cs_new_protected:Npn \simulator___send_message_to_window_manager:nn #1 #2
+    {
+        % If function being simulated is sending data, forward it to m_socket.
+        \function_list___if_in:VxT \c_simulator___functions_sending_data_to_window_manager {\function___get_name:n {#2}}
+        {
+            \draw [s_simulator___ipc_module_dashed_line] ($
+                                                           (g_simulator___focused_function_arrow.east)
+                                                           + (\c_settings___module_margin, 0mm)
+                                                         $)
+                                                         -- +(\c_settings___line_breaking, 0mm)
+                                                         |- (m_socket.north);
+        }
+
+        % Send request from i3-ipc++ to i3.
+        \draw let
+                  \p1 = (m_socket.north),
+                  \p2 = (m_socket.south),
+                  \p3 = (i3-ipc++.east),
+                  \n{x} = {\x3 + \c_settings___module_margin},
+                  \n{y} = {\y1},
+                  \n{width} = {
+                               \c_simulator___distance_from_library_to_window_manager
+                               - \c_settings___module_margin * 2
+                              },
+                  \n{height} = {\y1 - (\y1 - \y2) / 2}
+              in
+                  node (l_simulator___drawing_area) [
+                                                     anchor = north~west,
+                                                     minimum~width = \n{width},
+                                                     minimum~height = \n{height}
+                                                    ]
+                      at (\n{x}, \n{y}) {};
+        \function___draw:nnnx {#1}
+                              {l_simulator___drawing_area}
+                              {top}
+                              {
+                               \exp_not:V \c_simulator___ipc_function_label_color,
+                               \exp_not:V \c_simulator___focused_ipc_function_arrow_color
+                              }
+        \draw [s_simulator___ipc_module_dashed_arrow] (m_socket.north)
+                                                      -- ($
+                                                           (g_function___function_arrow.west)
+                                                           - (\c_settings___module_margin, 0mm)
+                                                         $);
+        \draw [s_simulator___window_manager_module_dashed_arrow] ($
+                                                                   (g_function___function_arrow.east)
+                                                                   + (\c_settings___module_margin, 0mm)
+                                                                 $)
+                                                                 -- (socket.north);
+
+        % Highlight request function.
+        \int_incr:N \g_simulator___highlight_counter
+        \node [
+               s_simulator___highlight = {270} {below} {\the\g_simulator___highlight_counter},
+               fit = (g_package_list___drawing_area)
+              ] {};
+    }
+    \cs_generate_variant:Nn \simulator___send_message_to_window_manager:nn {Vn}
+
+    % \simulator___simulate_response:Nn #1 #2
+    %
+    % Simulates i3's response by adding appropriate data to i3's socket.
+    %
+    % #1 -> Requst function.
+    %
+    % #2 -> Function being simulated.
+    %
+    \cs_new_protected:Npn \simulator___simulate_response:nn #1 #2
+    {
+        % If simulated function awaits success status from i3, add success status at the end of i3's socket queue.
+        \function_list___if_in:VxT \c_simulator___functions_requiring_success_status_from_window_manager
+                                   {\function___get_name:n {#2}}
+        {
+            \package_queue___push:NV \g_simulator___socket_data \c_simulator___status_response_package
+        }
+
+        % If simulated function awaits data returned from i3, add that data at the end of queue.
+        \function_list___if_in:VxT \c_simulator___functions_requesting_data_from_window_manager
+                                   {\function___get_name:n {#2}}
+        {
+            \package_queue___push:Nx \g_simulator___socket_data
+            {
+                \package___change_color:eV {\function___get_only_package:n {#1}} \c_settings___package_response_color
+            }
+        }
+    }
+    \cs_generate_variant:Nn \simulator___simulate_response:nn {Vn}
+
+    % \simulator___receive_messages_through_socket:(n|V|x) #1
+    %
+    % Draws data from i3's socket that is being received by i3-ipc++.
+    %
+    % #1 - Package list representing receiving data.
+    %
+    %%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%
+    \function___new:N \l_simulator___response_function %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___receive_messages_through_socket:n #1
+    {
+        % Take template for response function.
+        \function___set:NV \l_simulator___response_function \c_simulator___function_receive
+
+        % Set package list which should be received (in reverse order, since function is drawn from right to left).
+        \function___set_return_package_list:Nx \l_simulator___response_function {\package_list___reverse:n {#1}}
+
+        % Receive and parse response from i3.
+        \draw let \p1 = (m_socket.north),
+                  \p2 = (m_socket.south),
+                  \p3 = (i3-ipc++.east),
+                  \n{x} = {\x3 + \c_settings___module_margin},
+                  \n{y} = {\y2},
+                  \n{width} = {
+                               \c_simulator___distance_from_library_to_window_manager
+                               - \c_settings___module_margin * 2
+                              },
+                  \n{height} = {\y1 - (\y1 - \y2) / 2}
+              in
+                  node (l_simulator___drawing_area) [
+                                                     anchor = south~west,
+                                                     minimum~width = \n{width},
+                                                     minimum~height = \n{height}
+                                                    ]
+                      at (\n{x}, \n{y}) {};
+        \function___draw:Vnnx \l_simulator___response_function
+                              {l_simulator___drawing_area}
+                              {bottom}
+                              {
+                               \exp_not:V \c_simulator___ipc_function_label_color,
+                               \exp_not:V \c_simulator___focused_ipc_function_arrow_color,
+                               \exp_not:V \c_simulator___ipc_function_return_arrow_color
+                              }
+        \draw [s_simulator___window_manager_module_dashed_arrow] (socket.south)
+                                                                 -- ($
+                                                                      (g_function___return_arrow.east)
+                                                                      + (\c_settings___module_margin, 0mm)
+                                                                    $);
+        \draw [s_simulator___ipc_module_dashed_arrow] ($
+                                                        (g_function___return_arrow.west)
+                                                        - (\c_settings___module_margin, 0mm)
+                                                      $)
+                                                      -- (i3_json_parser);
+    }
+    \cs_generate_variant:Nn \simulator___receive_messages_through_socket:n {V, x}
+
+    % \simulator___handle_messages_from_window_manager:n #1
+    %
+    % Handles messages received from i3 based on currently simulated function #1.
+    %
+    % #1 - Curently simulated function.
+    %
+    %%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%
+    \package_list___new:N \l_simulator___moved_events %
+    \int_new:N \l_simulator___translation_step        %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___handle_messages_from_window_manager:n #1
+    {
+        % Receive and parse data from i3's socket.
+        \simulator___receive_messages_through_socket:V \g_simulator___socket_data
+
+        % Highlight response packages.
+        \int_incr:N \g_simulator___highlight_counter
+        \node [
+               s_simulator___highlight = {270} {below} {\the\g_simulator___highlight_counter},
+               fit = (g_package_list___drawing_area)
+              ] {};
+
+        % Handle received messages from i3.
+        \int_zero:N \l_simulator___translation_step
+        \package_list___clear:N \l_simulator___moved_events
+        \package_queue___map_inline:Nn \g_simulator___socket_data
+        {
+            % Remove current package from queue since it will be handled now.
+            \package_queue___pop:N \g_simulator___socket_data
+
+            % Handle success statuses.
+            \package___if_eq:nVT {##1} \c_simulator___status_response_package
+            {
+                % Functions not needing success status should never encounter it.
+                \function_list___if_in:VxF \c_simulator___functions_requiring_success_status_from_window_manager
+                                           {\function___get_name:n {#1}}
+                {
+                    \utility___error:nnnx {simulator} {Internal~simulator~error!}
+                                                      {Functions~not~needing~success~status~should~never~encounter~it!}
+                                                      {Function~"\function___get_name:n {#1}"~got~it.}
+                }
+
+                % Event handlers can move callback to m_event_queue when success status is parsed.
+                \function_list___if_in:VxT \c_simulator___event_handlers {\function___get_name:n {#1}}
+                {
+                    % Forward callback to m_event_queue.
+                    \package_queue___push:Nx \g_simulator___m_event_queue {\function___get_only_package:n {#1}}
+                    \draw [s_simulator___ipc_module_dashed_arrow] ($
+                                                                    (g_simulator___focused_function_arrow.east)
+                                                                    + (\c_settings___module_margin, 0mm)
+                                                                  $)
+                                                                  -- +(\c_settings___line_breaking, 0mm)
+                                                                  |- (m_event_queue.west);
+
+                    % Highlight forwarded package.
+                    \int_incr:N \g_simulator___highlight_counter
+                    \node [
+                           s_simulator___highlight = {270} {below} {\the\g_simulator___highlight_counter},
+                           fit = (g_simulator___focused_function_packages)
+                          ] {};
+                }
+
+                % Function got requested success status, stop further reading from socket.
+                \package_queue___map_break:
+            }
+
+            % Handle data responses.
+            \tl_if_eq:xVT {\package___get_color:n {##1}} \c_settings___package_response_color
+            {
+                % Functions not expecting data response should never encounter it.
+                \function_list___if_in:VxF \c_simulator___functions_requesting_data_from_window_manager
+                                           {\function___get_name:n {#1}}
+                {
+                    \utility___error:nnnx {simulator} {Internal~simulator~error!}
+                                                      {Functions~not~expecting~data~response~should~never~encounter~it!}
+                                                      {Function~"\function___get_name:n {#1}"~got~it.}
+                }
+
+                % Forward parsed return data back to function requesting it.
+                \draw [s_simulator___ipc_module_dashed_arrow] (i3_json_parser.west)
+                                                              -- +(-\c_settings___line_breaking * 2, 0mm)
+                                                              |- ($
+                                                                   (g_simulator___focused_return_arrow.east)
+                                                                   + (\c_settings___module_margin, 0mm)
+                                                                 $);
+
+                % Highlight focused return packages.
+                \int_incr:N \g_simulator___highlight_counter
+                \node [
+                       s_simulator___highlight = {270} {below} {\the\g_simulator___highlight_counter},
+                       fit = (g_simulator___focused_return_packages)
+                      ] {};
+
+                % Function got requested data response, stop further reading from socket.
+                \package_queue___map_break:
+            }
+
+            % Handle events.
+            \package_list___if_in:VnT \c_simulator___events {##1}
+            {
+                % Forward event to m_event_queue.
+                \package_queue___push:Nn \g_simulator___m_event_queue {##1}
+
+                % Also add event to temporary list and save highlight counter to later draw all moved events at once.
+                \package_list___add:Nn \l_simulator___moved_events {##1}
+                \int_compare:nNnT {\l_simulator___translation_step} = {0}
+                {
+                    \int_incr:N \g_simulator___highlight_counter
+                    \int_set_eq:NN \l_simulator___translation_step \g_simulator___highlight_counter
+                }
+
+                % If "i3_ipc::handle_next_event" gets event, stop further reading.
+                \tl_if_eq:VnT \c_simulator___function_handle_next_event {#1}
+                {
+                    \package_queue___map_break:
+                }
+            }
+        }
+
+        % Draw moved events to m_event_queue.
+        \package_list___if_empty:NF \l_simulator___moved_events
+        {
+            \coordinate (l_simulator___begin) at ($(i3_json_parser.west) - (\c_settings___line_breaking, 0mm)$);
+
+            \draw let
+                      \p1 = (l_simulator___begin),
+                      \p2 = (m_event_queue.west)
+                  in
+                      coordinate (l_simulator___end)
+                          at (\x1, \y2);
+
+            \function_list___if_in:VxTF \c_simulator___event_handlers {\function___get_name:n {#1}}
+            {
+                \draw [s_simulator___ipc_module_dashed_line] (i3_json_parser.west)
+                                                             -- (l_simulator___begin)
+                                                             -- (l_simulator___end);
+            }
+            {
+                \draw [s_simulator___ipc_module_dashed_arrow] (i3_json_parser.west)
+                                                              -- (l_simulator___begin)
+                                                              -- (l_simulator___end)
+                                                              -- (m_event_queue.west);
+            }
+
+            % Draw list in reverse order because arrow is positioned upside down.
+            \package_list___draw:xnnnn {\package_list___reverse:V \l_simulator___moved_events}
+                                       {l_simulator___begin}
+                                       {l_simulator___end}
+                                       {middle}
+                                       {middle}
+
+            \node [
+                   s_simulator___highlight = {0} {right} {\the\l_simulator___translation_step},
+                   fit = (g_package_list___drawing_area)
+                  ] {};
+        }
+    }
+
+    % \simulator___execute_callback:(nn|Vn) #1 #2
+    %
+    % Executes appropriate callback from m_callbacks on given event #1.
+    %
+    % #1 Event package with which callback should be executed.
+    %
+    % #2 Event's source, used to correctly draw event being used. It can be "event_queue" or "parser".
+    %
+    %%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%
+    \package___new:N \l_simulator___callback   %
+    \int_new:N \l_simulator___callback_counter %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___execute_callback:nn #1 #2
+    {
+        % Find appropriate callback to call for event (by matching color).
+        \int_zero:N \l_simulator___callback_counter
+        \package_list___map_inline:Nn \g_simulator___m_callbacks
+        {
+            \tl_if_eq:xxT {\package___get_color:n {#1}} {\package___get_color:n {##1}}
+            {
+                \package___set:Nn \l_simulator___callback {##1}
+                \package_list___map_break:
+            }
+
+            \int_incr:N \l_simulator___callback_counter
+        }
+
+        % Callback function must be available before event was received from i3.
+        \tl_if_empty:xT {\package___get_label:N \l_simulator___callback}
+        {
+            \utility___error:nnn {simulator} {There~is~no~callback~to~execute~given~event!}
+                                             {Be~sure~to~provide~appropriate~callback~function~before~simulating~event!}
+        }
+
+        % Draw callback execution.
+        \draw let
+                  \p1 = (m_event_queue.south),
+                  \p2 = (m_callbacks.west)
+              in
+                  node (g_simulator___callback) [
+                                                 shape = ellipse,
+                                                 decorate,
+                                                 decoration = zigzag,
+                                                 fill = \package___get_color:n {#1},
+                                                 font = \c_simulator___callback_font
+                                                ]
+                      at (\x1, \y2)
+                      {\package___get_label:N \l_simulator___callback (\package___get_label:n {#1})};
+
+        % Show callback function from m_callbacks that is being executed.
+        \draw [s_simulator___ipc_module_dashed_arrow]
+            let
+                \p1 = (m_callbacks.south~west),
+                \p2 = (g_simulator___callback.225),
+                \n{x} = {\x1 + (\l_simulator___callback_counter + 0.5) * \c_settings___package_size},
+                \n{y} = {\y1 - \c_settings___y_distance_from_member_to_its_content - \c_settings___package_size}
+            in
+                (\n{x}, \n{y}) -- +(0mm, -\c_settings___line_breaking) -| (\p2);
+
+        % Draw event's movement from its source(m_event_queue or i3_json_parser).
+        \str_case:nn {#2}
+        {
+            {event_queue}
+            {
+                \draw let
+                          \p1 = (m_event_queue.east),
+                          \p2 = (m_callbacks.west),
+                          \n{x} = {\x1 + (\x2 - \x1) / 2},
+                          \n{y} = {\y1}
+                      in
+                          coordinate (l_simulator___begin)
+                              at (\n{x}, \n{y});
+                \draw [s_simulator___ipc_module_dashed_arrow] (m_event_queue.east)
+                                                              -- (l_simulator___begin)
+                                                              |- (g_simulator___callback.east);
+            }
+
+            {parser}
+            {
+                \coordinate (l_simulator___begin) at ($(i3_json_parser.west) - (\c_settings___line_breaking, 0mm)$);
+                \draw [s_simulator___ipc_module_dashed_arrow] (i3_json_parser.west)
+                                                              -- (l_simulator___begin)
+                                                              |- (g_simulator___callback.west);
+            }
+        }
+
+        % Draw event on the movement line.
+        \draw let
+                  \p1 = (l_simulator___begin),
+                  \p2 = (g_simulator___callback.west)
+              in
+                  coordinate (l_simulator___end)
+                      at (\x1, \y2);
+        \package_list___draw:nnnnn {{#1}} {l_simulator___begin} {l_simulator___end} {middle} {middle}
+    }
+    \cs_generate_variant:Nn \simulator___execute_callback:nn {Vn}
+
+    % \c_simulator___handle_event_from_event_queue:
+    %
+    % Handles one event from m_event_queue. Encountered callbacks before event are stored in m_callbacks.
+    %
+    %%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%
+    \package_list___new:N \l_simulator___moved_callbacks %
+    \int_new:N \l_simulator___callback_index             %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \c_simulator___handle_event_from_event_queue:
+    {
+        \package_list___clear:N \l_simulator___moved_callbacks
+        \package_queue___map_inline:Nn \g_simulator___m_event_queue
+        {
+            % Element in m_event_queue must be event or callback.
+            \regex_match:nxF {E|C\c{textsubscript}\cB\{?[1-9][0-9]*\cE\}?} {\package___get_label:n {##1}}
+            {
+                \utility___error:nnn {simulator} {Invalid~event~in~m_event_queue!}
+                                                 {m_event_queue~may~contain~only~callbacks~and~events!}
+            }
+
+            % Remove current package from queue since it will be handled now.
+            \package_queue___pop:N \g_simulator___m_event_queue
+
+            % Execute stored callback on event or store callback in m_callbacks.
+            \package_list___if_in:VnTF \c_simulator___events {##1}
+            {
+                \package_list___map_break:n {\simulator___execute_callback:nn {##1} {event_queue}}
+            }
+            {
+                % Set the callback on appropriate position in m_callbacks.
+                \int_zero:N \l_simulator___callback_index
+                \package_list___map_inline:Nn \g_simulator___m_callbacks
+                {
+                    \int_incr:N \l_simulator___callback_index
+
+                    \tl_if_eq:xxT {\package___get_color:n {##1}} {\package___get_color:n {####1}}
+                    {
+                        \package_list___set_item:Nnn \g_simulator___m_callbacks {\l_simulator___callback_index} {##1}
+
+                        % Also add callback to temporary list to later draw all of them at once.
+                        \package_list___add:Nn \l_simulator___moved_callbacks {##1}
+
+                        \package_list___map_break:
+                    }
+                }
+            }
+        }
+
+        % Draw and highlight callbacks moved from m_event_queue to m_callbacks.
+        \package_list___if_empty:NF \l_simulator___moved_callbacks
+        {
+            \draw let
+                      \p1 = (m_event_queue.east),
+                      \p2 = (m_callbacks.north)
+                  in
+                      coordinate (l_simulator___begin)
+                          at (\x2, \y1);
+
+            \draw [s_simulator___ipc_module_dashed_arrow] (m_event_queue.east)
+                                                          -- (l_simulator___begin)
+                                                          -- (m_callbacks.north);
+
+            \package_list___draw:xnnnn {\package_list___reverse:V \l_simulator___moved_callbacks}
+                                       {l_simulator___begin}
+                                       {m_callbacks.north}
+                                       {middle}
+                                       {middle}
+
+            \int_incr:N \g_simulator___highlight_counter
+            \node [
+                   s_simulator___highlight = {0} {right} {\the\g_simulator___highlight_counter},
+                   fit = (g_package_list___drawing_area)
+                  ] {};
+        }
+    }
+
+    % \c_simulator___handle_event_from_socket:
+    %
+    % Handles one event from i3's socket.
+    %
+    %%%%%%%%%%% Local Variables %%%%%%%%%%%
+    \package___new:N \l_simulator___event %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \c_simulator___handle_event_from_socket:
+    {
+        % If there is no event in i3's socket, wait and abort any further simulation.
+        \package_queue___if_empty:NTF \g_simulator___socket_data
+        {
+            % "Receive" hourglass from i3 to signal that there are no pending events to be handled.
+            \simulator___receive_messages_through_socket:x {{WHITE, $\hourglass$}}
+
+            % Highlight hourglass package.
+            \int_incr:N \g_simulator___highlight_counter
+            \node [
+                   s_simulator___highlight = {270} {below} {\the\g_simulator___highlight_counter},
+                   fit = (g_package_list___drawing_area)
+                  ] {};
+
+            % Prevent further simulation because event was not handled.
+            \bool_set_true:N \g_simulator___is_waiting_for_event
+        }
+        {
+            % Take one event from i3's socket.
+            \package_queue___pop:NN \g_simulator___socket_data \l_simulator___event
+
+            % If there is a message in i3's socket, it must be event.
+            \package_list___if_in:VVF \c_simulator___events \l_simulator___event
+            {
+                \utility___error:nnn {simulator} {Invalid~message~in~i3's~socket!}
+                                                 {That~message~has~to~be~event~at~this~point!}
+            }
+
+            % Receive and parse event from i3's socket.
+            \simulator___receive_messages_through_socket:x {{\exp_not:V {\l_simulator___event}}}
+
+            % Highlight received event.
+            \int_incr:N \g_simulator___highlight_counter
+            \node [
+                   s_simulator___highlight = {270} {below} {\the\g_simulator___highlight_counter},
+                   fit = (g_package_list___drawing_area)
+                  ] {};
+
+            % Find and execute appropriate callback for received event.
+            \simulator___execute_callback:Vn \l_simulator___event {parser}
+        }
+    }
+
+    % \simulator___simulate_function:(n|x) #1
+    %
+    % Simulates work of i3-ipc++ library for provided function call.
+    %
+    % #1 -> Function which will be simulated.
+    %
+    %%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%
+    \function___new:N \l_simulator___request_function %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___simulate_function:n #1
+    {
+        % Setup request function to send it to i3.
+        \simulator___create_request_function:Nn \l_simulator___request_function {#1}
+
+        % If needed, communicate with i3.
+        \tl_if_empty:xF {\function___get_packages:N \l_simulator___request_function}
+        {
+            % Send data/request to i3.
+            \simulator___send_message_to_window_manager:Vn \l_simulator___request_function {#1}
+
+            % Based on sent data/request, simulate i3's response and add it to i3's socket data.
+            \simulator___simulate_response:Vn \l_simulator___request_function {#1}
+
+            % Receive and handle data from i3's socket.
+            \simulator___handle_messages_from_window_manager:n {#1}
+        }
+
+        % If needed, handle event.
+        \function___if_eq:nVT {#1} \c_simulator___function_handle_next_event
+        {
+            % Handle event from m_event_queue.
+            \c_simulator___handle_event_from_event_queue:
+
+            % If event wasn't handled from m_event_queue, take one directly from i3's socket.
+            \utility___if_tikz_node_exists:nF {g_simulator___callback}
+            {
+                \c_simulator___handle_event_from_socket:
+            }
+        }
+
+        % If needed, highlight callback execution.
+        \utility___if_tikz_node_exists:nT {g_simulator___callback}
+        {
+            \int_incr:N \g_simulator___highlight_counter
+            \node [
+                   s_simulator___highlight = {210} {below~left} {\the\g_simulator___highlight_counter},
+                   fit = (g_simulator___callback)
+                  ] {};
+        }
+
+        % Draw packages from m_event_queue after simulation.
+        \package_queue___draw:Vnnnn \g_simulator___m_event_queue
+                                    {$
+                                      (m_event_queue.south~west)
+                                      - (0mm, \c_settings___y_distance_from_member_to_its_content)
+                                    $}
+                                    {$
+                                      (m_event_queue.south~east)
+                                      - (0mm, \c_settings___y_distance_from_member_to_its_content)
+                                    $}
+                                    {end}
+                                    {below}
+
+        % Draw callbacks from m_callbacks after simulation.
+        \package_list___draw:Vnnnn \g_simulator___m_callbacks
+                                   {$
+                                     (m_callbacks.south~west)
+                                     - (0mm, \c_settings___y_distance_from_member_to_its_content)
+                                   $}
+                                   {$
+                                     (m_callbacks.south~east)
+                                     - (0mm, \c_settings___y_distance_from_member_to_its_content)
+                                   $}
+                                   {end}
+                                   {below}
+    }
+    \cs_generate_variant:Nn \simulator___simulate_function:n {x}
+
+
+    % \simulator___add_necessary_tick_events:nN #1 #2
+    %
+    % Simulates i3's behavior to always create tick event when user subscribes to it.
+    % So, for every subscription to tick event, there will be added one tick event afterwards.
+    % Also, every time a user sends a tick, and it is already subscribed to it, one tick event will be added afterwards.
+    %
+    % #1 -> Comma-separated list of events and functions.
+    %
+    % #2 -> Comma-separated list variable with added tick events after every subscription to tick event.
+    %
+    %%%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%%%
+    \bool_new:N \l_simulator___is_subscribed_to_tick_event %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___add_necessary_tick_events:nN #1 #2
+    {
+        \clist_clear:N #2
+        \bool_set_false:N \l_simulator___is_subscribed_to_tick_event
+        \clist_map_inline:nn {#1}
+        {
+            % Add current item to the new comma-separated list variable #2.
+            \clist_put_right:Nn #2 {{##1}}
+
+            % If current item is "on_tick_event" function, also add tick event to new comma-separated list variable #2.
+            \function___if_eq:nVT {##1} \c_simulator___function_on_tick_event
+            {
+                \clist_put_right:Nx #2 {{\exp_not:V \c_simulator___tick_event}}
+
+                % Set flag to know that from this moment user is subscribed to tick events.
+                \bool_set_true:N \l_simulator___is_subscribed_to_tick_event
+            }
+
+            % If current item is "send_tick" function, and user is already subscribed to tick events,
+            % also add the tick event to new comma-separated list variable #2.
+            \function___if_eq:nVT {##1} \c_simulator___function_send_tick
+            {
+                \bool_if:NT \l_simulator___is_subscribed_to_tick_event
+                {
+                    \clist_put_right:Nx #2 {{\exp_not:V \c_simulator___tick_event}}
+                }
+            }
+        }
+    }
+
+    % \simulator___simulate:(n|x) #1
+    %
+    % Simulates work of i3-ipc++ library and creates images for each function in list of events/functions #1.
+    %
+    % #1 -> Comma-separated list of events and functions. For list of supported events/functions see "simulator.cls".
+    %
+    %%%%%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%%
+    \int_new:N \l_simulator___function_index_           %
+    %\int_new:N \l_simulator___callback_index           %
+    %\int_new:N \l_simulator___callback_counter         %
+    \dim_new:N \l_simulator___image_height              %
+    \clist_new:N \l_simulator___simulation_list         %
+    \function___new:N \l_simulator___simulation_item    %
+    \function_list___new:N \l_simulator___function_list %
+    \ior_new:N \l_simulator___input_stream              %
+    \iow_new:N \l_simulator___output_stream             %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \simulator___simulate:n #1
+    {
+        % Update the simulation list with tick events if needed.
+        \simulator___add_necessary_tick_events:nN {#1} \l_simulator___simulation_list
+
+        % Extract API functions from list of simulation items.
+        \function_list___clear:N \l_simulator___function_list
+        \clist_map_variable:NNn \l_simulator___simulation_list \l_simulator___simulation_item
+        {
+            % If current simulation item is one of API functions, store it in a separate list.
+            \clist_if_in:NVT \c_simulator___api_functions \l_simulator___simulation_item
+            {
+                % If current API function is one of event handlers, first configure the index of its callback.
+                \clist_if_in:NVT \c_simulator___event_handlers \l_simulator___simulation_item
+                {
+                    % Get the global counter for callbacks of provided event handler function.
+                    \function_list___find_by_name:VxN \c_simulator___event_handlers
+                                                      {\function___get_name:N \l_simulator___simulation_item}
+                                                      \l_simulator___callback_index
+                    \int_set:Nx \l_simulator___callback_counter
+                    {
+                        \clist_item:Nn \g_simulator___callback_counters {\l_simulator___callback_index}
+                    }
+
+                    % Increment the global counter for this type of callbacks.
+                    \int_incr:N \l_simulator___callback_counter
+                    \utility___clist_set_item:NnV \g_simulator___callback_counters
+                                                  {\l_simulator___callback_index}
+                                                  \l_simulator___callback_counter
+
+                    % Set appropriate callback counter to event handler function.
+                    \function___set_package_list:Nx \l_simulator___simulation_item
+                    {
+                        {
+                         \package___get_color:e {\function___get_only_package:V \l_simulator___simulation_item},
+                         \exp_not:n {C \textsubscript} {\the\l_simulator___callback_counter}
+                        }
+                    }
+                }
+
+                % Add API function to separate list.
+                \function_list___add:NV \l_simulator___function_list \l_simulator___simulation_item
+            }
+        }
+
+        % Calculate image height based on number of API function calls and user settings.
+        \dim_set:Nn \l_simulator___image_height
+        {
+            \dim_max:nn
+            {
+                (
+                 \c_simulator___maximum_height_of_api_function_labels
+                 + \c_settings___distance_from_function_label_to_function_arrow
+                 + \c_function___maximum_function_arrow_height
+                 + \c_settings___distance_from_function_arrow_to_return_arrow
+                 + \c_function___maximum_return_arrow_height
+                 + \fp_to_dim:n {\c_simulator___highlight_label_height * 1.5}
+                ) * \function_list___count:N \l_simulator___function_list
+            }
+            {
+                \c_simulator___ipc_module_height
+            }
+        }
+
+        % Simulate each item in the list.
+        \int_zero:N \l_simulator___function_index_
+        \clist_map_inline:Nn \l_simulator___simulation_list
+        {
+            % Report error if simulation item is neither event nor API function.
+            \clist_if_in:NnF \c_simulator___events {##1}
+            {
+                \clist_if_in:NnF \c_simulator___api_functions {##1}
+                {
+                    \utility___error:nnnn {simulator} {Invalid~item!}
+                                                      {"##1"~is~neither~event~nor~function!}
+                                                      {Check~supported~events/functions~in~"simulator.cls"~file!}
+                }
+            }
+
+            % Prevent further simulation if last "handle_next_event" didn't finish.
+            \bool_if:NT \g_simulator___is_waiting_for_event
+            {
+                \utility___error:nnnn {simulator} {Can't~simulate~next~item!}
+                                                  {Last~"handle_next_event"~function~did~not~finish!}
+                                                  {Make~sure~there~is~event~in~i3's~socket~or~m_event_queue~before~it!}
+            }
+
+            % Simulate events and function calls.
+            \clist_if_in:NnTF \c_simulator___events {##1}
+            {
+                % Simulate event by pushing it to i3's socket data queue.
+                \package_queue___push:Nn \g_simulator___socket_data {##1}
+            }
+            {
+                \int_incr:N \l_simulator___function_index_
+
+                \tikz
+                {
+                    % Draw a picture simulating requested function call.
+                    \simulator___draw_modules:V \l_simulator___image_height
+                    \simulator___draw_function_calls:nnVV {program}
+                                                          {i3-ipc++}
+                                                          \l_simulator___function_list
+                                                          \l_simulator___function_index_
+                    \simulator___simulate_function:x
+                    {
+                        \function_list___item:Nn \l_simulator___function_list {\l_simulator___function_index_}
+                    }
+
+                    % Write current simulation state in a temporary file because "\tikz" can't update global variables.
+                    \iow_open:NV \l_simulator___output_stream \c_simulator___temporary_file
+                    \package_queue___write_to_stream:VN \g_simulator___socket_data \l_simulator___output_stream
+                    \package_queue___write_to_stream:VN \g_simulator___m_event_queue \l_simulator___output_stream
+                    \package_list___write_to_stream:VN \g_simulator___m_callbacks \l_simulator___output_stream
+                    \utility___bool_write_to_stream:VN \g_simulator___is_waiting_for_event \l_simulator___output_stream
+                    \iow_close:N \l_simulator___output_stream
+                }
+
+                % Read current simulation state from temporary file for next iteration.
+                \ior_open:NV \l_simulator___input_stream \c_simulator___temporary_file
+                \package_queue___read_from_stream:NN \g_simulator___socket_data \l_simulator___input_stream
+                \package_queue___read_from_stream:NN \g_simulator___m_event_queue \l_simulator___input_stream
+                \package_list___read_from_stream:NN \g_simulator___m_callbacks \l_simulator___input_stream
+                \utility___bool_read_from_stream:NN \g_simulator___is_waiting_for_event \l_simulator___input_stream
+                \ior_close:N \l_simulator___input_stream
+            }
+        }
+    }
+    \cs_generate_variant:Nn \simulator___simulate:n {x}
+
+\ExplSyntaxOff

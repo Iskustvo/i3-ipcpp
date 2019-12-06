@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_unsupported.hpp
+ * \file    i3_ipc_unsupported.hpp
  *
- * Defines "i3_ipc_unsupported" class used for throwing errors when some property has the value unknown to the library.
+ * \brief   Defines "i3_ipc_unsupported" class used for throwing errors when some property has unexpected value.
  */
 
 #ifndef I3_IPC_UNSUPPORTED_HPP

@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_json_parser-utility.cpp
+ * \file    i3_json_parser-utility.cpp
  *
- * Defines private member functions of "i3_json_parser" class.
+ * \brief   Defines private member functions of "i3_json_parser" class.
  */
 
 // Library headers.

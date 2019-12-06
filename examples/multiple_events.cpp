@@ -5,11 +5,15 @@
 
 // C++ headers.
 #include <iostream>
+#include <system_error>
+
+// C headers.
+#include <cstdint>
 
 // Callback function which will be called on i3's window events.
 void window_callback(const i3_containers::window_event& event)
 {
-    switch(event.change)
+    switch (event.change)
     {
         case i3_containers::window_change::create:          std::cout << "Creating window!"        << std::endl; return;
         case i3_containers::window_change::close:           std::cout << "Closing window!"         << std::endl; return;
@@ -46,15 +50,16 @@ int main()
         throw;
     }
 
-    std::cout << "Play with windows and binding modes to create events" << std::endl;
+    constexpr unsigned number_of_needed_events = 5;
+    std::cout << "Play with windows and binding modes to create " << number_of_needed_events << " events!" << std::endl;
 
     // Handle window and mode events.
-    while(true)
+    std::uint8_t number_of_handled_events = 0;
+    while (number_of_handled_events++ < number_of_needed_events)
     {
         try
         {
-            const i3_ipc::event_type handled_event_type = i3.handle_next_event();
-            switch(handled_event_type)
+            switch (i3.handle_next_event())
             {
                 case i3_ipc::event_type::mode:
                     std::cout << "Handled \"mode\" event!\n" << std::endl;
@@ -81,4 +86,6 @@ int main()
             std::cout << "Couldn't parse i3's response: " << exception.what() << std::endl;
         }
     }
+
+    return 0;
 }

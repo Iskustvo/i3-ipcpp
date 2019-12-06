@@ -7,33 +7,25 @@
 #include <chrono>
 #include <iostream>
 
-// C headers.
-#include <cstdlib>
-
 // Callback function which will be used when i3 is about to restart.
 void restart_callback(const i3_containers::shutdown_event& event)
 {
     if (event.change == i3_containers::shutdown_type::restart)
     {
-        std::cout << "Caught restart event!\n"
-                  << "Exiting successfully!" << std::endl;
-        exit(EXIT_SUCCESS);
+        std::cout << "Caught restart event!\n" << std::endl;
     }
 }
 
 // This function will be called from a thread to restart i3.
-void restart_thread(const i3_ipc* i3)
+void restart_thread()
 {
+    // Create IPC object and connect it to running i3 process.
+    i3_ipc i3;
+
     // Sleep 2 seconds and then restart i3.
+    std::cout << "Restarting i3 in 2 seconds!" << std::endl;
     std::this_thread::sleep_for(std::chrono::seconds(2));
-    std::cout << "Restarting i3!" << std::endl;
-    try
-    {
-        // Special case where "restart" is sent as command is not implemented properly
-        // at the moment, so it will always throw. But that won't effect this example.
-        i3->execute_commands("restart");
-    }
-    catch (...) { }
+    i3.execute_commands("restart");
 }
 
 int main()
@@ -45,8 +37,12 @@ int main()
     i3.on_shutdown_event(restart_callback);
 
     // Start a thread which will restart i3 in 2 seconds.
-    std::thread thread(restart_thread, &i3);
+    std::thread thread(restart_thread);
 
     // Wait and handle restart event.
     i3.handle_next_event();
+
+    thread.join();
+
+    return 0;
 }

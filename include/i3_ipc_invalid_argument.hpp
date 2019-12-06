@@ -18,9 +18,9 @@
 */
 
 /**
- * \file i3_ipc_invalid_argument.hpp
+ * \file    i3_ipc_invalid_argument.hpp
  *
- * Defines "i3_ipc_invalid_argument" class used for throwing errors when user provides bad arguments to the library.
+ * \brief   Defines "i3_ipc_invalid_argument" class used for throwing errors when user provides invalid arguments.
  */
 
 #ifndef I3_IPC_INVALID_ARGUMENT_HPP

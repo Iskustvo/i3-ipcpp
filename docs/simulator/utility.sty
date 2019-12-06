@@ -1,0 +1,391 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file extands some functions from LaTeX 3 API to allow easier usage.
+% There are also implementation of some general purpose functions which can be used anywhere.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {utility}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {tikz}
+\RequirePackage {expl3}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIKZ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usetikzlibrary {external}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LATEX 3 VARIANTS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    % Integer functionalities.
+    \cs_generate_variant:Nn \int_set:Nn {Nx}
+    \cs_generate_variant:Nn \int_const:Nn {Nx}
+    \prg_generate_conditional_variant:Nnn \int_case:nn {xn} {T, F, TF}
+    \prg_generate_conditional_variant:Nnn \int_compare:nNn {nNe} {T, F, TF}
+
+    % Token list functionalities.
+    \cs_generate_variant:Nn \tl_const:Nn {NV}
+    \prg_generate_conditional_variant:Nnn \tl_if_empty:n {x} {T, F, TF}
+    \prg_generate_conditional_variant:Nnn \tl_if_eq:nn {Vn, xn, xV, xx} {T, F, TF}
+
+    % Comma-list functionalities.
+    \cs_generate_variant:Nn \clist_const:Nn {NV}
+    \cs_generate_variant:Nn \clist_map_inline:nn {xn}
+
+    % Input/Output stream functionalities.
+    \cs_generate_variant:Nn \ior_open:Nn {NV}
+    \cs_generate_variant:Nn \iow_open:Nn {NV}
+
+    % Regular expression functionalities.
+    \prg_generate_conditional_variant:Nnn \regex_match:nn {nx} {T, F, TF}
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+% LATEX 3 EPANSIONS
+
+    % \utility___clist_set_item:(Nnn|NnV) #1 #2 #3
+    %
+    % Replaces item with index #2 in comma-separated list variable #1 with item #3.
+    %
+    % #1 -> Comma-separated list variable.
+    %
+    % #2 -> Integer expression which will be evaluated to index of the item in comma-separated list #1.
+    %
+    % #3 -> New item to be set in comma-separated list variable #1 over item at index #2.
+    %
+    %%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%
+    \int_new:N \l_utility___item_counter      %
+    \clist_new:N \l_utility___temporary_clist %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \utility___clist_set_item:Nnn #1 #2 #3
+    {
+        \int_zero:N \l_utility___item_counter
+        \clist_clear:N \l_utility___temporary_clist
+        \clist_map_inline:Nn #1
+        {
+            \int_incr:N \l_utility___item_counter
+            \int_compare:nNnTF {\l_utility___item_counter} = {#2}
+            {
+                \clist_put_right:Nn \l_utility___temporary_clist {{#3}}
+            }
+            {
+                \clist_put_right:Nn \l_utility___temporary_clist {{##1}}
+            }
+        }
+        \clist_set:NV #1 \l_utility___temporary_clist
+    }
+    \cs_generate_variant:Nn \utility___clist_set_item:Nnn {NnV}
+
+    % \utility___dim_max:nnn #1 #2 #3
+    %
+    % Compares dimension values #1, #2 and #3 and leaves the maximum one into the input stream.
+    %
+    % #1 -> Dim value.
+    %
+    % #2 -> Dim value.
+    %
+    % #3 -> Dim value.
+    %
+    \cs_new_protected:Npn \utility___dim_max:nnn #1 #2 #3
+    {
+        \dim_max:nn {\dim_max:nn {#1} {#2}} {#3}
+    }
+
+% TIKZ UTILITIES
+
+    % \utility___measure_tikz_width_and_height:NNn #1 #2 #3
+    %
+    % Measures width and height of "\tikz" picture with code #3 and creates constant dimensions with names #1 and #2.
+    %
+    % #1 -> Variable name which will be set to measured width.
+    %
+    % #2 -> Variable name which will be set to measured height.
+    %
+    % #3 -> Tikz code which will create temporary picture and measure it.
+    %
+    %%%%%%%%%% Local Variables %%%%%%%%%%
+    \box_new:N \l_utility___measure_box %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \utility___measure_tikz_width_and_height:NNn #1 #2 #3
+    {
+        \savebox \l_utility___measure_box
+        {
+            \tikzset {external/optimize = false}
+            \tikzset {external/export~next = false}
+            \tikz {#3}
+        }
+        \dim_const:Nn #1 {\box_wd:N \l_utility___measure_box}
+        \dim_const:Nn #2 {\box_ht:N \l_utility___measure_box + \box_dp:N \l_utility___measure_box}
+    }
+
+    % \utility___if_tikz_node_exists:n[TF] #1
+    %
+    % Checks if node with name #1 is draw in current \tikz environment.
+    %
+    % #1 -> Name of the tikz node.
+    %
+    \makeatletter
+        \prg_new_conditional:Npnn \utility___if_tikz_node_exists:n #1 {T, F, TF}
+        {
+            \@ifundefined {pgf@sh@ns@#1} {\prg_return_false:} {\prg_return_true:}
+        }
+    \makeatother
+
+% ERROR UTILITIES
+
+    % \utility___enable_error_checks_in_module:n #1
+    %
+    % Creates template for error message in specified module #1.
+    % This function is enabling all error checks (\utility___*check_* functions) in functions from module #1.
+    %
+    % #1 -> Name of the module where utility checks will be performed.
+    %
+    \cs_new_protected:Npn \utility___enable_error_checks_in_module:n #1
+    {
+        \msg_if_exist:nnF {#1} {g_utility___error_message}
+        {
+            \msg_new:nnn {#1} {g_utility___error_message} {
+                                                           \tl_if_empty:nF {##1} {\\##1}
+                                                           \tl_if_empty:nF {##2} {\\##2}
+                                                           \tl_if_empty:nF {##3} {\\##3}
+                                                           \tl_if_empty:nF {##4} {\\##4}
+                                                          }
+        }
+    }
+
+    % \utility___clist_check_number_of_elements:(nnn|enn|nVn) #1 #2 #3
+    %
+    % Checks if comma-separated list #1 has #2 number of elements in it.
+    % CHECK WILL BE PERFORMED ONLY IF \utility___enable_error_checks_in_module:n WAS CALLED FOR MODULE #3.
+    %
+    % #1 -> Comma-separated list.
+    %
+    % #2 -> Integer expression which will evaluate to required number of elements.
+    %
+    % #3 -> Module where this check is performed.
+    %
+    \cs_new:Npn \utility___clist_check_number_of_elements:nnn #1 #2 #3
+    {
+        \msg_if_exist:nnT {#3} {g_utility___error_message}
+        {
+            \int_compare:nNeF {#2} = {\clist_count:n {#1}}
+            {
+                \Invalid_number_of_elements
+            }
+        }
+    }
+    \cs_generate_variant:Nn \utility___clist_check_number_of_elements:nnn {enn, nVn}
+
+    % \utility___clist_check_if_element_exists:nnn #1 #2 #3
+    %
+    % Checks if comma-separated list #1 has at least element with index #2 in it.
+    % CHECK WILL BE PERFORMED ONLY IF \utility___enable_error_checks_in_module:n WAS CALLED FOR MODULE #3.
+    %
+    % #1 -> Comma-separated list.
+    %
+    % #2 -> Integer expression which will be evaluated to index of the needed item in comma-separated list #1.
+    %
+    % #3 -> Module where this check is performed.
+    %
+    \cs_new:Npn \utility___clist_check_if_element_exists:nnn #1 #2 #3
+    {
+        \msg_if_exist:nnT {#3} {g_utility___error_message}
+        {
+            \int_compare:nNeT {#2} > {\clist_count:n {#1}}
+            {
+                \Requested_element_does_not_exist
+            }
+        }
+    }
+    \cs_generate_variant:Nn \utility___clist_check_if_element_exists:nnn {Vnn, nVn, VVn}
+
+    % \utility___error:nn[nnn] #1 #2 [#3] [#4] [#5]
+    % \utility___error:nnnx #1 #2 #3 #4
+    % \utility___error:nx #1 #2
+    %
+    % Reports error for module #1 with message(s) #2, [#3], [#4] and [#5], where each message starts in a new line.
+    %
+    % #1   -> Module where error happened.
+    %
+    % #2   -> Error message.
+    %
+    % [#3] -> Error message.
+    %
+    % [#4] -> Error message.
+    %
+    % [#5] -> Error message.
+    %
+    \cs_new_protected:Npn \utility___error:nnnnn #1 #2 #3 #4 #5
+    {
+        \utility___enable_error_checks_in_module:n {#1}
+        \msg_fatal:nnnnnn {#1} {g_utility___error_message} {#2} {#3} {#4} {#5}
+    }
+    \cs_new_protected:Npn \utility___error:nnnn #1 #2 #3 #4 {\utility___error:nnnnn {#1}{#2}{#3}{#4}{  }}
+    \cs_new_protected:Npn \utility___error:nnn  #1 #2 #3    {\utility___error:nnnnn {#1}{#2}{#3}{  }{  }}
+    \cs_new_protected:Npn \utility___error:nn   #1 #2       {\utility___error:nnnnn {#1}{#2}{  }{  }{  }}
+    \cs_generate_variant:Nn \utility___error:nnnn {nnnx}
+    \cs_generate_variant:Nn \utility___error:nn {nx}
+
+% MISC UTILITIES
+
+    % \utility___set_to_dimension:(nNn|nNx) #1 #2 #3
+    %
+    % Measures the dimension #1 of styled text #3 and sets it to variable #2.
+    %
+    % #1 -> Dimension to be measured: "width", "height", "depth" or "total_height".
+    %
+    % #2 -> Variable which will be set to measured dimension.
+    %
+    % #3 -> Styled text to be measured.
+    %
+    %%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%
+    \dim_new:N \l_utility___temporary_dimension %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \utility___set_to_dimension:nNn #1 #2 #3
+    {
+        \str_case:nnF {#1}
+        {
+            {width}  {\settowidth  {#2} {#3}}
+            {height} {\settoheight {#2} {#3}}
+            {depth}  {\settodepth  {#2} {#3}}
+
+            {total_height}
+            {
+                \settoheight {#2} {#3}
+                \settodepth  {\l_utility___temporary_dimension} {#3}
+                \dim_add:Nn #2 {\l_utility___temporary_dimension}
+            }
+        }
+        {
+            \utility___error:nnn {utility} {Invalid~dimension~"#1"!}
+                                           {Use~"width",~"height",~"depth"~or~"total_height"~instead.}
+        }
+    }
+    \cs_generate_variant:Nn \utility___set_to_dimension:nNn {nNx}
+
+    % \utility___set_to_maximum_dimension:(nNn|nNV) #1 #2 #3
+    %
+    % Calculates the maximum dimension #1 of strings in #3 and stores it to variable #2.
+    %
+    % #1 -> Dimension to be measured: width, height, depth or total_height.
+    %
+    % #2 -> Variable which will be set to maximum measured dimension.
+    %
+    % #3 -> Comma-separated list of strings.
+    %
+    %%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%
+    \dim_new:N \l_utility___current_dimension %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \utility___set_to_maximum_dimension:nNn #1 #2 #3
+    {
+        \dim_zero:N #2
+        \clist_map_inline:nn {#3}
+        {
+            \utility___set_to_dimension:nNn {#1} \l_utility___current_dimension {##1}
+            \dim_set:Nn {#2} {\dim_max:nn {#2} {\l_utility___current_dimension}}
+        }
+    }
+    \cs_generate_variant:Nn \utility___set_to_maximum_dimension:nNn {nNV}
+
+    % \utility___bool_write_to_stream:(nN|VN) #1 #2
+    %
+    % Writes bool value #1 to OPENED writing stream variable #2.
+    %
+    % #1 -> Bool value which will be written.
+    %
+    % #2 -> OPENED writing stream variable.
+    %
+    \cs_new_protected:Npn \utility___bool_write_to_stream:nN #1 #2
+    {
+        \iow_now:Nn #2 {#1}
+    }
+    \cs_generate_variant:Nn \utility___bool_write_to_stream:nN {VN}
+
+    % \utility___bool_read_from_stream:NN #1 #2
+    %
+    % Reads value into bool variable #1 from OPENED reading stream #2.
+    %
+    % #1 -> Bool variable which will be set to read value.
+    %
+    % #2 -> OPENED reading stream variable.
+    %
+    \cs_new_protected:Npn \utility___bool_read_from_stream:NN #1 #2
+    {
+        \ior_map_inline:Nn #2
+        {
+            \bool_set:Nn #1 {##1}
+            \ior_map_break:
+        }
+    }
+
+    % \utility___const_font:(Nn|NV)[n] #1 #2 [#3]
+    %
+    % Creates new const font variable with name #1 which will contain font size #2 and text style attributes #3.
+    %
+    % #1   -> Variable name for new const font.
+    %
+    % #2   -> Floating point value representing the font size.
+    %
+    % [#3] -> Text style attributes to append to const font variable.
+    %
+    \cs_new_protected:Npn \utility___const_font:Nnn #1 #2 #3
+    {
+        \tl_const:Nx #1 {\exp_not:N \fontsize {\fp_to_dim:n {#2}} {\fp_to_dim:n {#2 * 1.2}} \exp_not:n {\selectfont #3}}
+    }
+    \cs_generate_variant:Nn \utility___const_font:Nnn {NVn}
+    \cs_new_protected:Npn \utility___const_font:Nn #1 #2
+    {
+        \utility___const_font:Nnn #1 {#2} {}
+    }
+    \cs_generate_variant:Nn \utility___const_font:Nn {NV}
+
+    % \utility___execute_with_changed_character_catcode:(Nnn|nnn) #1 #2 #3
+    %
+    % Executes the code #3 in environment where character [or its code] #1 has changed catcode to #2.
+    %
+    % #1 -> In case of N, this argument is printable character.
+    %       In case of n, this is integer expression for character code.
+    %
+    % #2 -> Number representing the new catcode for the character #1 while code #3 is executing.
+    %       1  -> begin group
+    %       2  -> end group
+    %       3  -> math toggle
+    %       4  -> alignment
+    %       6  -> parameter
+    %       7  -> math superscript
+    %       8  -> math subscript
+    %       11 -> letter
+    %       12 -> other
+    %       13 -> active
+    %
+    % #3 -> Code to be executed in this environment where character [or its code] #1 has changed catcode to #2.
+    %
+    %%%%%%%%%%%% Local Variables %%%%%%%%%%%%%
+    \int_new:N \l_utility___original_catcode %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \utility___execute_with_changed_character_catcode:nnn #1 #2 #3
+    {
+        \int_set:Nx \l_utility___original_catcode {\char_value_catcode:n {#1}}
+        \char_set_catcode:nn {#1} {#2}
+        #3
+        \char_set_catcode:nn {#1} {\l_utility___original_catcode}
+    }
+    \cs_new_protected:Npn \utility___execute_with_changed_character_catcode:Nnn #1 #2 #3
+    {
+        \utility___execute_with_changed_character_catcode:nnn {`#1} {#2} {#3}
+    }
+
+\ExplSyntaxOff

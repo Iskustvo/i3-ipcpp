@@ -25,7 +25,7 @@ int main()
 {
     // Create IPC object and connect it to running i3 process.
     std::unique_ptr<i3_ipc> i3 = safely_create_i3_ipc();
-    if(!i3)
+    if (!i3)
     {
         std::cout << "Failed with creation of i3_ipc object!" << std::endl;
         return 1;

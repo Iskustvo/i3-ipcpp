@@ -1,0 +1,132 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file contains all settings that USER can easily modify to make some tweaks to generated pictures.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {settings}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {expl3}
+\RequirePackage {colors}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% USER SETTINGS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+% PICTURES
+
+    % NOTE: Destination where pictures will be generated is taken from environment variable "LATEX_SIMULATOR_OUTPUT".
+
+    \int_const:Nn \c_settings___picture_width {1920}
+    \int_const:Nn \c_settings___picture_height {1080}
+    \int_const:Nn \c_settings___picture_density {300}
+    \str_const:Nn \c_settings___picture_name_prefix {step_} % Pictures will be named "step_0.png", "step_1.png"...
+
+% FONT SIZES
+
+    % Font sizes.
+    \fp_const:Nn \c_settings___module_label_font_size {25}
+    \fp_const:Nn \c_settings___member_label_font_size {14}
+    \fp_const:Nn \c_settings___function_label_font_size {18}
+    \fp_const:Nn \c_settings___callback_label_font_size {20}
+    \fp_const:Nn \c_settings___highlight_label_font_size {14}
+
+    % Font scale - Used when needed font size does not exist in the font.
+    \fp_const:Nn \c_settings___module_label_font_scale {1.5}
+
+% COLORS
+
+    % Colors for Program.
+    \tl_const:Nn \c_settings___program_module_background_color {LIGHT_PURPLE}
+    \tl_const:Nn \c_settings___program_member_background_color {PURPLE}
+    \tl_const:Nn \c_settings___program_module_label_color      {DARK_PURPLE}
+    \tl_const:Nn \c_settings___program_member_label_color      {VERY_DARK_PURPLE}
+
+    % Colors for i3_ipc.
+    \tl_const:Nn \c_settings___ipc_module_background_color {LIGHT_BLUE}
+    \tl_const:Nn \c_settings___ipc_member_background_color {BLUE}
+    \tl_const:Nn \c_settings___ipc_module_label_color      {DARK_BLUE}
+    \tl_const:Nn \c_settings___ipc_member_label_color      {VERY_DARK_BLUE}
+
+    % Colors for i3.
+    \tl_const:Nn \c_settings___window_manager_module_background_color {LIGHT_GREEN}
+    \tl_const:Nn \c_settings___window_manager_member_background_color {GREEN}
+    \tl_const:Nn \c_settings___window_manager_module_label_color      {DARK_GREEN}
+    \tl_const:Nn \c_settings___window_manager_member_label_color      {VERY_DARK_GREEN}
+
+    % Image background color - Equal combination of module background colors, lightened by 30% white color.
+    \tl_const:Nx \c_settings___background_color
+    {
+        \exp_not:V \c_settings___program_module_background_color
+        !50! \exp_not:V \c_settings___ipc_module_background_color
+        !67! \exp_not:V \c_settings___window_manager_module_background_color
+        !70! WHITE
+    }
+
+    % Event\callback colors.
+    \tl_const:Nn \c_settings___workspace_event_color  {PANTONE_MAGENTA}
+    \tl_const:Nn \c_settings___output_event_color     {SAND_MOTIF_BROW}
+    \tl_const:Nn \c_settings___mode_event_color       {KHAKI_BROWN}
+    \tl_const:Nn \c_settings___window_event_color     {PERU_BROWN}
+    \tl_const:Nn \c_settings___bar_config_event_color {GOLDENROD_YELLOW}
+    \tl_const:Nn \c_settings___binding_event_color    {CARROT_ORANGE}
+    \tl_const:Nn \c_settings___shutdown_event_color   {REDWOOD_RED}
+    \tl_const:Nn \c_settings___tick_event_color       {BATTLESHIP_GRAY}
+
+    % Color for packages that are actually forwared from program to i3.
+    \tl_const:Nn \c_settings___color_for_user_data_sent_to_window_manager {ELECTRIC_PURPLE}
+
+    % Package request and response colors.
+    \tl_const:Nn \c_settings___package_request_color {CANNARY_YELLOW}
+    \tl_const:Nn \c_settings___package_response_color {MALACHITE_GREEN}
+
+    % Highlight color.
+    \tl_const:Nn \c_settings___highlight_color {X11_BLUE}
+
+% DIMENSIONS
+
+    % Package size.
+    \dim_const:Nn \c_settings___package_size {5mm}
+
+    % If line has to be broken when drawing, break it after this length.
+    \dim_const:Nn \c_settings___line_breaking {\c_settings___package_size * 2}
+
+    % Function drawing dimensions.
+    \dim_const:Nn \c_settings___distance_from_function_label_to_function_arrow {0.1mm}
+    \dim_const:Nn \c_settings___function_arrow_height {\c_settings___package_size}
+    \dim_const:Nn \c_settings___function_arrow_tip_height {\c_settings___function_arrow_height * 2}
+    \dim_const:Nn \c_settings___function_arrow_tip_width {\c_settings___function_arrow_tip_height}
+    \dim_const:Nn \c_settings___distance_from_function_arrow_to_return_arrow {0.1mm}
+    \dim_const:Nn \c_settings___return_arrow_height {1mm}
+    \dim_const:Nn \c_settings___return_arrow_tip_height {\c_settings___return_arrow_height * 4}
+    \dim_const:Nn \c_settings___return_arrow_tip_width {\c_settings___return_arrow_tip_height}
+
+    % Margins.
+    \dim_const:Nn \c_settings___image_margin {2mm}
+    \dim_const:Nn \c_settings___module_margin {2mm}
+
+    % Paddings.
+    \dim_const:Nn \c_settings___program_module_padding {10mm}
+    \dim_const:Nn \c_settings___function_label_padding {5mm}
+    \dim_const:Nn \c_settings___ipc_module_padding_top {2mm}
+    \dim_const:Nn \c_settings___ipc_module_padding_left
+    {
+        \c_settings___line_breaking * 2 + \c_settings___package_size + 5mm
+    }
+    \dim_const:Nn \c_settings___ipc_module_padding_bottom {2mm}
+    \dim_const:Nn \c_settings___ipc_module_padding_right {5mm}
+    \dim_const:Nn \c_settings___json_parser_padding {2mm}
+    \dim_const:Nn \c_settings___window_manager_padding_left {\c_settings___ipc_module_padding_right}
+    \dim_const:Nn \c_settings___window_manager_padding_right {\c_settings___ipc_module_padding_right}
+    \dim_const:Nn \c_settings___module_member_padding {2mm}
+
+    % Distances between elements in i3-ipc++.
+    \dim_const:Nn \c_settings___y_distance_from_ipc_label_to_m_socket {10mm}
+    \dim_const:Nn \c_settings___y_distance_from_json_parser_to_m_event_queue {\c_settings___package_size * 5}
+    \dim_const:Nn \c_settings___y_distance_from_m_event_queue_to_m_callbacks {\c_settings___package_size * 3}
+    \dim_const:Nn \c_settings___y_distance_from_member_to_its_content {0.5mm}
+
+\ExplSyntaxOff

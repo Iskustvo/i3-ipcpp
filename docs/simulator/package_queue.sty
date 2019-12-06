@@ -1,0 +1,202 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% DESCRIPTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% This file defines "package_queue" structure and methods that interact with it.
+% In reality this is mostly expansion of "package_list" structure with methods to use it as a queue instead of a list.
+% For details about "package_list" structure, see "package_list.sty" file.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HEADER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\NeedsTeXFormat {LaTeX2e}
+\ProvidesPackage {package_queue}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% PACKAGES %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\RequirePackage {expl3}
+\RequirePackage {utility}
+\RequirePackage {package}
+\RequirePackage {package_list}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% ERROR CHECKS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+    \utility___enable_error_checks_in_module:n {package_queue}
+
+\ExplSyntaxOff
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% FUNCTIONS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ExplSyntaxOn
+
+% PACKAGE QUEUE CONSTRUCTION
+
+    % \package_queue___new:N #1
+    %
+    % Creates a new empty package queue variable.
+    %
+    % #1 -> Name of the new package queue variable.
+    %
+    \cs_new_eq:NN \package_queue___new:N \clist_clear_new:N
+
+% GETTING INFO FROM PACKAGE QUEUE
+
+    % \package_queue___count:(N|n) #1
+    %
+    % Leaves the number of packages in package queue #1 to the input stream.
+    %
+    % #1 -> Package queue.
+    %
+    \cs_new_eq:NN \package_queue___count:N \clist_count:N
+    \cs_new_eq:NN \package_queue___count:n \clist_count:n
+
+% MODIFYING PACKAGE LIST
+
+    % \package_queue___clear:N #1
+    %
+    % Clears content of the package queue variable #1.
+    %
+    % #1 -> Name of the package queue variable.
+    %
+    \cs_new_eq:NN \package_queue___clear:N \clist_clear:N
+
+    % \package_queue___push:(Nn|NV|Nx) #1 #2
+    %
+    % Pushes package #2 to the end of package queue variable #1.
+    %
+    % #1 -> Package queue variable.
+    %
+    % #2 -> Package which will be added to package queue #1.
+    %
+    %%%%%%%%%%%%%%% Local Variables %%%%%%%%%%%%%%%%%
+    \package___new:N \l_package_queue___tmp_package %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \package_queue___push:Nn #1 #2
+    {
+        % Use \package___set to perform checks on input data from #2.
+        \package___set:Nn \l_package_queue___tmp_package {#2}
+        \clist_put_left:Nx #1 {{\exp_not:V \l_package_queue___tmp_package}}
+    }
+    \cs_generate_variant:Nn \package_queue___push:Nn {NV, Nx}
+
+    % \package_queue___pop:(N)[N] #1 [#2]
+    %
+    % Removes the package from beginning of package queue variable #1 [and places it in #2].
+    %
+    % #1   -> Package queue variable from which element will be removed.
+    %
+    % [#2] -> Package variable which will be set to removed element from package queue variable #1.
+    %
+    %%%%%%%%%%% Local Variables %%%%%%%%%%
+    \tl_new:N \l_package_queue___garbage %
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %
+    \cs_new_protected:Npn \package_queue___pop:NN #1 #2
+    {
+        \utility___clist_check_if_element_exists:Vnn #1 {1} {package_queue}
+        \clist_reverse:N #1
+        \clist_pop:NN #1 #2
+        \clist_reverse:N #1
+    }
+    \cs_new_protected:Npn \package_queue___pop:N #1
+    {
+        \package_queue___pop:NN #1 \l_package_queue___garbage
+    }
+
+% ITERATING OVER PACKAGE QUEUE
+
+    % \package_queue___map_inline:(Nn|nn|Vn) #1 #2
+    %
+    % Applies inline function #2 to each package in package queue #1.
+    % Current package is accessible by "#1" inside inline function #2.
+    %
+    % #1 -> Package queue.
+    %
+    % #2 -> Inline function to be applied to each package.
+    %
+    \cs_new_protected:Npn \package_queue___map_inline:nn #1 #2
+    {
+        \clist_map_inline:xn {\clist_reverse:n {#1}} {#2}
+    }
+    \cs_generate_variant:Nn \package_queue___map_inline:nn {Vn}
+    \cs_new_protected:Npn \package_queue___map_inline:Nn #1 #2
+    {
+        \package_queue___map_inline:Vn #1 {#2}
+    }
+
+    % \package_queue___map_break:(|n) #1
+    %
+    % Break out of most inner "map" function and executes #1 code afterwards.
+    % Note that since this function is just an alias for \clist_map_break, break will happen for any clist_map function.
+    %
+    % #1 -> Code to be executed after break is done.
+    %
+    \cs_new_eq:NN \package_queue___map_break: \clist_map_break:
+    \cs_new_eq:NN \package_queue___map_break:n \clist_map_break:n
+
+% PACKAGE QUEUE CONDITIONALS
+
+    % \package_queue___if_empty:N[TF] #1
+    %
+    % Checks if package queue variable #1 is empty.
+    %
+    % #1 -> Package queue variable.
+    %
+    \prg_new_eq_conditional:NNn \package_queue___if_empty:N \clist_if_empty:N {T, F, TF}
+
+% PACKAGE QUEUE LOGGING
+
+    % \package_queue___log:(N|n|x) #1
+    %
+    % Logs the value of package queue #1.
+    %
+    % #1 -> Package queue to be logged.
+    %
+    \cs_new_eq:NN \package_queue___log:N \clist_log:N
+    \cs_new_eq:NN \package_queue___log:n \clist_log:n
+    \cs_generate_variant:Nn \package_queue___log:n {x}
+
+% READING/WRITING PACKAGE QUEUE FROM/TO I/O STREAM
+
+    % \package_queue___read_from_stream:NN #1 #2
+    %
+    % Reads one line of input stream #2 and stores it in package queue #1.
+    %
+    % #1 -> Package queue variable to be set with read content.
+    %
+    % #2 -> OPENED input stream from which package queue will be leaded.
+    %
+    \cs_new_eq:NN \package_queue___read_from_stream:NN \package_list___read_from_stream:NN
+
+    % \package_queue___write_to_stream:(nN|VN) #1 #2
+    %
+    % Writes the content of package queue #1 to output stream #2.
+    %
+    % #1 -> Package queue to be written.
+    %
+    % #2 -> OPENED output stream where package queue #1 will be written.
+    %
+    \cs_new_eq:NN \package_queue___write_to_stream:nN \package_list___write_to_stream:nN
+    \cs_generate_variant:Nn \package_queue___write_to_stream:nN {VN}
+
+% DRAWING PACKAGE QUEUE
+
+    % \package_queue___draw:(nnnnn|Vnnnn|xnnnn) #1 #2 #3 #4 #5
+    %
+    % Draws packages from package queue #1 relative to line #2 --- #3.
+    % Relative positioning is defined with horizontal alignment #4 and vertical alignment #5.
+    %
+    % #1 -> Package queue to be drawn.
+    %
+    % #2 -> Coordinate for beginning of the referent line.
+    %
+    % #3 -> Coordinate for end of the referent line.
+    %
+    % #4 -> Horizontal alignment: begin or middle
+    %
+    % #5 -> Vertical alignment: below or middle
+    %
+    \cs_new_eq:NN \package_queue___draw:nnnnn \package_list___draw:nnnnn
+    \cs_generate_variant:Nn \package_queue___draw:nnnnn {Vnnnn}
+
+\ExplSyntaxOff
