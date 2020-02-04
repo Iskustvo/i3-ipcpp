@@ -118,11 +118,11 @@ namespace i3_containers
      */
     struct x11_window
     {
-        std::string window_class;                     /**< X11 window class (WM_CLASS class).                     */
-        std::string window_instance;                  /**< X11 window class instance (WM_CLASS instance).         */
-        std::optional<std::string> window_role;       /**< X11 window role (WM_WINDOW_ROLE).                      */
-        std::optional<std::string> window_title;      /**< X11 window title in UTF-8 (_NET_WM_NAME).              */
-        std::optional<std::uint64_t> transient_for;   /**< X11 window ID of the parent window (WM_TRANSIENT_FOR). */
+        std::optional<std::string> window_class;    /**< X11 window class (WM_CLASS class).                     */
+        std::optional<std::string> window_instance; /**< X11 window class instance (WM_CLASS instance).         */
+        std::optional<std::string> window_role;     /**< X11 window role (WM_WINDOW_ROLE).                      */
+        std::optional<std::string> window_title;    /**< X11 window title in UTF-8 (_NET_WM_NAME).              */
+        std::optional<std::uint64_t> transient_for; /**< X11 window ID of the parent window (WM_TRANSIENT_FOR). */
     };
 
     /**
