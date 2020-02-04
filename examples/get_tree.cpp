@@ -135,17 +135,18 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
     // Print X11 properties of the container.
     if (a_node.window_properties)
     {
-
         const i3_containers::x11_window& window = *a_node.window_properties;
-        const std::string& window_class = window.window_class;
-        const std::string& window_instance = window.window_instance;
-        const std::string& window_role = window.window_role ? *window.window_role : "None";
+        const std::string& window_class = window.window_class.value_or("None");
+        const std::string& window_instance = window.window_instance.value_or("None");
+        const std::string& window_role = window.window_role.value_or("None");
+        const std::string& window_title = window.window_title.value_or("None");
         const std::string& transient_for = window.transient_for ? std::to_string(*window.transient_for) : "None";
 
-        std::cout << a_indent << "X11 window properties: " << "\n"
+        std::cout << a_indent << "X11 window properties:\n"
                   << a_indent + "\t" << "Class = \"" << window_class << "\"\n"
                   << a_indent + "\t" << "Instance = \"" << window_instance << "\"\n"
                   << a_indent + "\t" << "Role = \"" << window_role << "\"\n"
+                  << a_indent + "\t" << "Title = \"" << window_title << "\"\n"
                   << a_indent + "\t" << "Transient for = \"" << transient_for << "\"\n";
     }
     else
