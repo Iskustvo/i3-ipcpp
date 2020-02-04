@@ -173,8 +173,8 @@ namespace
         const rapidjson::Value& window_object = a_json_object["window_properties"];
 
         i3_containers::x11_window window;
-        window.window_class = get_attribute_value<const char*>(window_object, "class");
-        window.window_instance = get_attribute_value<const char*>(window_object, "instance");
+        window.window_class = get_attribute_value<std::optional<const char*>>(window_object, "class");
+        window.window_instance = get_attribute_value<std::optional<const char*>>(window_object, "instance");
         window.window_role = get_attribute_value<std::optional<const char*>>(window_object, "window_role");
         window.window_title = get_attribute_value<std::optional<const char*>>(window_object, "title");
         window.transient_for = get_attribute_value<std::optional<std::uint64_t>>(window_object, "transient_for");
