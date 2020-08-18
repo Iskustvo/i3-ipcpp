@@ -154,6 +154,7 @@ namespace i3_containers
         std::optional<std::uint64_t> window;              /**< X11 window ID of the client inside the container.      */
         std::optional<x11_window> window_properties;      /**< X11 properties of the window.                          */
         bool is_urgent;                                   /**< Whether the container is (in)directly urgent or not.   */
+        std::vector<std::string> marks;                   /**< List of marks assigned to container.                   */
         bool is_focused;                                  /**< Whether the container is currently focused or not.     */
         std::vector<std::uint64_t> focus;                 /**< List of child node IDs in focus order.                 */
         fullscreen_mode_type fullscreen_mode;             /**< The fullscreen mode of the container.                  */

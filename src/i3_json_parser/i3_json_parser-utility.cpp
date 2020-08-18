@@ -224,6 +224,25 @@ i3_containers::rectangle i3_json_parser::extract_rectangle(const rapidjson::Valu
     return rectangle;
 }
 
+std::vector<std::string> extract_marks(const rapidjson::Value& a_json_object)
+{
+    assert(a_json_object.IsObject());
+    if (!a_json_object.HasMember("marks") || a_json_object["marks"].IsNull())
+    {
+        return { };
+    }
+
+    std::vector<std::string> marks;
+    assert(a_json_object["marks"].IsArray());
+    for (const auto& mark : a_json_object["marks"].GetArray())
+    {
+        assert(mark.IsString());
+        marks.push_back(mark.GetString());
+    }
+
+    return marks;
+}
+
 i3_containers::node i3_json_parser::extract_tree(const rapidjson::Value& a_json_object)
 {
     // Extract trivial node info.
@@ -254,6 +273,9 @@ i3_containers::node i3_json_parser::extract_tree(const rapidjson::Value& a_json_
         assert(node_ID.IsUint64());
         node.focus.push_back(node_ID.GetUint64());
     }
+
+    // Extract list of marks assigned to container
+    node.marks = extract_marks(a_json_object);
 
     // Recursively call this function to extract info about tilling child nodes.
     assert(a_json_object.HasMember("nodes"));
