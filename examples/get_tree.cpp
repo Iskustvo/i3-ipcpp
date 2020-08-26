@@ -159,6 +159,16 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
               << a_indent << "Is urgent: " << a_node.is_urgent << "\n"
               << a_indent << "Is focused: " << a_node.is_focused << "\n";
 
+    // Print marks assigned to container if not empty.
+    if (!a_node.marks.empty()) {
+        std::cout << a_indent << "Marks:";
+        for (const auto& node_mark : a_node.marks)  
+        {                                         
+            std::cout << " " << node_mark;          
+        }                                         
+        std::cout << "\n";
+    }
+    
     // Print ID's of focused children to be able to reach the most-inner child which is actually focused.
     std::cout << a_indent << "Child IDs in focus order:" << (a_node.focus.empty() ? " None" : "");
     for (const auto& node_id : a_node.focus)
