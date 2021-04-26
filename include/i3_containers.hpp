@@ -41,7 +41,7 @@
 namespace i3_containers
 {
     /**
-     * \brief   Structutre used to represent windows.
+     * \brief   Structure used to represent windows.
      */
     struct rectangle
     {
@@ -52,10 +52,11 @@ namespace i3_containers
     };
 
     /**
-     * \brief   Structutre used to represent one workspace.
+     * \brief   Structure used to represent one workspace.
      */
     struct workspace
     {
+        std::uint64_t id;                /**< Internal ID of the workspace node.                 */
         std::optional<std::uint8_t> num; /**< Logical number of the workspace.                   */
         std::string name;                /**< Name of the workspace.                             */
         bool is_visible;                 /**< Whether the workspace is currently visible or not. */
