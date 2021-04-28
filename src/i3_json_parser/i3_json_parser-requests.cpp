@@ -174,6 +174,7 @@ std::vector<i3_containers::workspace> i3_json_parser::parse_workspaces(const cha
     for (const auto& workspace_info : json_array.GetArray())
     {
         i3_containers::workspace workspace;
+        workspace.id = get_attribute_value<std::uint64_t>(workspace_info, "id");
         const std::int8_t tmp = get_attribute_value<std::int8_t>(workspace_info, "num");
         workspace.num = tmp < 0 ? std::nullopt : std::make_optional(static_cast<std::uint8_t>(tmp));
         workspace.name = get_attribute_value<const char*>(workspace_info, "name");

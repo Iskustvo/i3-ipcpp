@@ -52,6 +52,7 @@ int main()
     {
         const std::string number = workspace.num ? std::to_string(*workspace.num) : "None";
         std::cout << std::boolalpha
+                  << "ID: " << workspace.id << "\n"
                   << "Number: " << number << "\n"
                   << "Name: \"" << workspace.name << "\"\n"
                   << "Is visible: " << workspace.is_visible << "\n"
