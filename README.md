@@ -59,14 +59,37 @@ Here is a list of goals in decreasing order of importance:
 * [i3](https://github.com/i3/i3)
 * [RapidJSON](https://github.com/Tencent/rapidjson/)
 * Modern C++17 compiler.
+* CMake (optional)
 
 ## Installation ##
+
+### Install via `make` (official)
 
 ```sh
 ./configure --help    # See how you can configure build system.
 ./configure [options] # Configure build for your needs.
 make                  # Build library in configured way.
 # make install        # Optionally install the library in configured way.
+```
+
+### Install via `cmake` (unofficial - thanks @rbrugo)
+
+```sh
+mkdir build
+cd build
+cmake [-Doption...] ..             # Configure build
+cmake --build .                    # Build library in configured way
+# cmake --build . --target install # Optionally install the library
+```
+Available options are `build_static`, `build_dynamic` and `build_examples`;
+you can choose the install prefix with `-DCMAKE_INSTALL_PREFIX=<path>`.
+You can later import this library in your CMake project with `find_package`:
+```
+find_package(i3-ipc++ REQUIRED)
+```
+and link your library against the required build:
+```
+target_link_libraries(<your_target> <PUBLIC|PRIVATE|INTERFACE> i3-ipc++::i3-ipc++[-shared|-static])
 ```
 
 ## Usage ##
