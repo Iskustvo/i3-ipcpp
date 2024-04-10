@@ -160,6 +160,7 @@ namespace i3_containers
         fullscreen_mode_type fullscreen_mode;             /**< The fullscreen mode of the container.                  */
         std::vector<node> nodes;                          /**< The tiling child containers of this node.              */
         std::vector<node> floating_nodes;                 /**< The floating child containers of this node.            */
+        std::vector<std::string> marks;                   /**< List of marks assigned to container.                   */
     };
 
     /**

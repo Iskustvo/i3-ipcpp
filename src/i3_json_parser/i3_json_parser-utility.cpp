@@ -271,5 +271,18 @@ i3_containers::node i3_json_parser::extract_tree(const rapidjson::Value& a_json_
         node.floating_nodes.push_back(extract_tree(node_object));
     }
 
+    if (a_json_object.HasMember("marks") && !a_json_object["marks"].IsNull())
+    {
+        auto& json_marks = a_json_object["marks"];
+        assert(json_marks.IsArray());
+        auto & marks = node.marks;
+        marks.reserve(json_marks.GetArray().Size());
+        for (const auto& mark : json_marks.GetArray())
+        {
+            assert(mark.IsString());
+            marks.push_back(mark.GetString());
+        }
+    }
+
     return node;
 }
