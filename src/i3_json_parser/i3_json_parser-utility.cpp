@@ -273,6 +273,7 @@ i3_containers::node i3_json_parser::extract_tree(const rapidjson::Value& a_json_
     node.is_urgent = get_attribute_value<bool>(a_json_object, "urgent");
     node.is_focused = get_attribute_value<bool>(a_json_object, "focused");
     node.fullscreen_mode = extract_fullscreen_mode(a_json_object);
+    node.marks = extract_marks(a_json_object);
 
     // Extract list of node IDs that have focus.
     assert(a_json_object.HasMember("focus"));
@@ -298,7 +299,6 @@ i3_containers::node i3_json_parser::extract_tree(const rapidjson::Value& a_json_
     {
         node.floating_nodes.push_back(extract_tree(node_object));
     }
-    node.marks = extract_marks(a_json_object);
 
     return node;
 }
