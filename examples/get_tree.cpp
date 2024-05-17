@@ -185,6 +185,14 @@ void print_i3_tree(const i3_containers::node& a_node, const std::string& a_inden
     }
     std::cout << a_indent << "Fullscreen mode: " << fullscreen_mode << "\n";
 
+    // Print marks.
+    std::cout << a_indent << "Marks: [";
+    for (const auto& mark : a_node.marks)
+    {
+        std::cout << " '" << mark << "'";
+    }
+    std::cout << " ]\n";
+
     // Recursively print info about all tilling nodes that are children of this node.
     std::cout << a_indent << "Tilling children nodes:" << (a_node.nodes.empty() ? " None" : "") << std::endl;
     for (const auto& node : a_node.nodes)

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16.2)
 
-project(i3-ipc++ VERSION 0.8.0 LANGUAGES CXX)
+project(i3-ipc++ VERSION 0.9.0 LANGUAGES CXX)
 
 include(CMakePackageConfigHelpers)
 

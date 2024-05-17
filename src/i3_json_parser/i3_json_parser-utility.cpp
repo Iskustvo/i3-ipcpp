@@ -197,6 +197,34 @@ namespace
         const auto val = get_attribute_value<std::uint8_t>(a_json_object, "fullscreen_mode");
         return static_cast<i3_containers::fullscreen_mode_type>(val);
     }
+
+
+    /**
+     * \brief                      Extracts the marks of the node from the JSON object.
+     *
+     * \param [in] a_json_object   JSON object.
+     *
+     * \return                     Extracted vector of marks
+     */
+    std::vector<std::string> extract_marks(const rapidjson::Value& a_json_object)
+    {
+        assert(a_json_object.IsObject());
+        if (!a_json_object.HasMember("marks") || !a_json_object["marks"].IsArray())
+        {
+            return { };
+        }
+
+        auto& json_marks = a_json_object["marks"];
+        std::vector<std::string> marks{};
+        marks.reserve(json_marks.GetArray().Size());
+        for (const auto& mark : json_marks.GetArray())
+        {
+            assert(mark.IsString());
+            marks.push_back(mark.GetString());
+        }
+
+        return marks;
+    }
 } // Unnamed namespace.
 
 rapidjson::Document i3_json_parser::parse_json(const char* a_json_string)
@@ -245,6 +273,7 @@ i3_containers::node i3_json_parser::extract_tree(const rapidjson::Value& a_json_
     node.is_urgent = get_attribute_value<bool>(a_json_object, "urgent");
     node.is_focused = get_attribute_value<bool>(a_json_object, "focused");
     node.fullscreen_mode = extract_fullscreen_mode(a_json_object);
+    node.marks = extract_marks(a_json_object);
 
     // Extract list of node IDs that have focus.
     assert(a_json_object.HasMember("focus"));

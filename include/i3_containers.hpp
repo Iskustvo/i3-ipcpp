@@ -158,6 +158,7 @@ namespace i3_containers
         bool is_focused;                                  /**< Whether the container is currently focused or not.     */
         std::vector<std::uint64_t> focus;                 /**< List of child node IDs in focus order.                 */
         fullscreen_mode_type fullscreen_mode;             /**< The fullscreen mode of the container.                  */
+        std::vector<std::string> marks;                   /**< List of marks assigned to container.                   */
         std::vector<node> nodes;                          /**< The tiling child containers of this node.              */
         std::vector<node> floating_nodes;                 /**< The floating child containers of this node.            */
     };
